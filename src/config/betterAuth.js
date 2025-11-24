@@ -28,7 +28,11 @@ const betterAuthSchema = {
 // Initialize Better Auth with RBAC support and Drizzle adapter
 const auth = betterAuth({
   appName: "Charts Backend",
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  baseURL:
+    process.env.BETTER_AUTH_URL ||
+    (process.env.NODE_ENV === "production"
+      ? "https://ehr-fastify-server.onrender.com"
+      : "http://localhost:3000"),
   secret:
     process.env.BETTER_AUTH_SECRET ||
     "your-super-secret-better-auth-key-change-this-in-production",
@@ -99,13 +103,13 @@ const auth = betterAuth({
   },
 
   // Trusted origins for CORS (frontend URLs)
-  trustedOrigins: process.env.CORS_ORIGIN 
-    ? process.env.CORS_ORIGIN.split(",").map(origin => origin.trim())
+  trustedOrigins: process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
     : [
         "http://localhost:3000",
         "http://localhost:3001",
         "https://ehr-frontend-by-samad.vercel.app/",
-        "https://ehr-frontend-by-samad-wpyl.vercel.app"
+        "https://ehr-frontend-by-samad-wpyl.vercel.app",
       ],
 });
 
