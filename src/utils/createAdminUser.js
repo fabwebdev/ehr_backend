@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
-import { eq, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 import { db } from "../config/db.drizzle.js";
 import { users, roles, user_has_roles } from "../db/schemas/index.js";
@@ -65,6 +65,7 @@ export default async function createAdminUser(
   } else {
     userId = nanoid();
 
+    const now = new Date();
     await db.insert(users).values({
       id: userId,
       name: displayName,
@@ -74,6 +75,8 @@ export default async function createAdminUser(
       password: hashedPassword,
       role: "admin",
       emailVerified: true,
+      createdAt: now,
+      updatedAt: now,
     });
   }
 
@@ -89,11 +92,23 @@ export default async function createAdminUser(
 
   const roleId = adminRole[0].id;
 
-  await db.execute(sql`
-    INSERT INTO ${user_has_roles} (user_id, role_id)
-    VALUES (${userId}, ${roleId})
-    ON CONFLICT (user_id, role_id) DO NOTHING
-  `);
+  const existingAssignment = await db
+    .select()
+    .from(user_has_roles)
+    .where(
+      and(
+        eq(user_has_roles.user_id, userId),
+        eq(user_has_roles.role_id, roleId)
+      )
+    )
+    .limit(1);
+
+  if (existingAssignment.length === 0) {
+    await db.insert(user_has_roles).values({
+      user_id: userId,
+      role_id: roleId,
+    });
+  }
 
   return {
     id: userId,
