@@ -519,7 +519,7 @@ async function authRoutes(fastify, options) {
       const { email, password, name, firstName, lastName } = request.body;
 
       // Import the createAdminUser function
-      const createAdminUser = (await import("../../create_admin_user.js"))
+      const createAdminUser = (await import("../utils/createAdminUser.js"))
         .default;
 
       // Create the admin user
