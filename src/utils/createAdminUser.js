@@ -1,8 +1,8 @@
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
-import { nanoid } from "nanoid";
 import { eq, and } from "drizzle-orm";
 
+import auth from "../config/betterAuth.js";
 import { db } from "../config/db.drizzle.js";
 import { users, roles, user_has_roles } from "../db/schemas/index.js";
 
@@ -45,40 +45,38 @@ export default async function createAdminUser(
     .where(eq(users.email, normalizedEmail))
     .limit(1);
 
-  let userId;
-
   if (existingUsers.length > 0) {
-    userId = existingUsers[0].id;
+    throw new Error("User with this email already exists. Use a unique email.");
+  }
 
-    await db
-      .update(users)
-      .set({
-        name: displayName,
-        firstName: sanitize(firstName),
-        lastName: sanitize(lastName),
-        password: hashedPassword,
-        role: "admin",
-        emailVerified: true,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, userId));
-  } else {
-    userId = nanoid();
+  const signupResponse = await auth.api.signUpEmail({
+    body: {
+      email: normalizedEmail,
+      password: normalizedPassword,
+      name: displayName,
+    },
+    headers: {},
+    cookies: {},
+  });
 
-    const now = new Date();
-    await db.insert(users).values({
-      id: userId,
+  const userId = signupResponse?.user?.id;
+
+  if (!userId) {
+    throw new Error("Failed to create user via Better Auth");
+  }
+
+  await db
+    .update(users)
+    .set({
       name: displayName,
       firstName: sanitize(firstName),
       lastName: sanitize(lastName),
-      email: normalizedEmail,
       password: hashedPassword,
       role: "admin",
       emailVerified: true,
-      createdAt: now,
-      updatedAt: now,
-    });
-  }
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId));
 
   const adminRole = await db
     .select()
