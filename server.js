@@ -13,7 +13,8 @@ import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
 import auth from "./src/config/betterAuth.js";
 import authRoutes from "./src/routes/auth.routes.js";
 import seedDatabase from "./src/database/seed.js";
-import fixUserHasRolesTable from "./fix_user_has_roles.js";
+import fixUserHasRolesTable from "./scripts/fix_user_has_roles.js";
+import fixPatientsColumns from "./scripts/fix_patients_columns.js";
 import originMiddleware from "./src/middleware/origin.middleware.js";
 import cookieFixMiddleware from "./src/middleware/cookie-fix.middleware.js";
 import { db } from "./src/config/db.drizzle.js";
@@ -114,15 +115,26 @@ async function buildUserProfile(userPayload, originalEmail) {
 
 // Register Fastify plugins
 app.register(import("@fastify/cookie"));
-const defaultCorsOrigins = [
-  "http://localhost:3000",
-  "http://localhost:3001",
-];
+const defaultCorsOrigins = ["http://localhost:3000", "http://localhost:3001"];
+const allowedCorsOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
+  : defaultCorsOrigins;
+
+function resolveCorsOrigin(origin, cb) {
+  if (!origin) {
+    // No origin header (e.g., Postman) → disable CORS handling and let route continue
+    return cb(null, false);
+  }
+
+  if (allowedCorsOrigins.includes(origin)) {
+    return cb(null, origin);
+  }
+
+  return cb(null, false);
+}
 
 app.register(import("@fastify/cors"), {
-  origin: process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
-    : defaultCorsOrigins,
+  origin: resolveCorsOrigin,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
 });
@@ -302,10 +314,25 @@ app.all("/api/auth/*", async (request, reply) => {
             } else {
               reply.header("set-cookie", value);
             }
+          } else if (key.toLowerCase() === "access-control-allow-origin") {
+            const origin =
+              request.headers.origin ||
+              request.headers["x-forwarded-origin"] ||
+              defaultCorsOrigins[0];
+            reply.header("Access-Control-Allow-Origin", origin);
+          } else if (key.toLowerCase() === "access-control-allow-credentials") {
+            reply.header("Access-Control-Allow-Credentials", "true");
           } else {
             reply.header(key, value);
           }
         });
+
+        const originHeader =
+          request.headers.origin ||
+          request.headers["x-forwarded-origin"] ||
+          defaultCorsOrigins[0];
+        reply.header("Access-Control-Allow-Origin", originHeader);
+        reply.header("Access-Control-Allow-Credentials", "true");
 
         const statusCode = betterResponse.status;
         let responseBody = null;
@@ -623,6 +650,14 @@ const startServer = async () => {
     } catch (fixError) {
       console.error("❌ Error fixing user_has_roles table:", fixError);
       // Don't exit here, continue with startup
+    }
+
+    // Ensure patients table has required columns
+    try {
+      await fixPatientsColumns();
+      console.log("✅ patients table checked/fixed");
+    } catch (patientsFixError) {
+      console.error("❌ Error fixing patients table:", patientsFixError);
     }
 
     // Connect to database

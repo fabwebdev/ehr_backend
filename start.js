@@ -3,7 +3,8 @@
 // This script runs migrations and the user_has_roles fix, then starts the server
 // Used as the main entry point for Render deployment
 
-import fixUserHasRolesTable from "./fix_user_has_roles.js";
+import fixUserHasRolesTable from "./scripts/fix_user_has_roles.js";
+import fixPatientsColumns from "./scripts/fix_patients_columns.js";
 import runMigrations from "./migrate.js";
 import { spawn } from "child_process";
 
@@ -17,21 +18,30 @@ async function startApplication() {
       await runMigrations();
       console.log("✅ Database migrations completed!");
     } catch (migrationError) {
-      console.error("⚠️  Migration error (continuing anyway):", migrationError.message);
+      console.error(
+        "⚠️  Migration error (continuing anyway):",
+        migrationError.message
+      );
       // Don't exit - continue with startup even if migrations fail
       // (some tables might already exist)
     }
 
-    // Run the fix script
+    // Run the fix scripts
     try {
-      const wasFixed = await fixUserHasRolesTable();
-      if (wasFixed) {
+      const [rolesFixed, patientsFixed] = await Promise.all([
+        fixUserHasRolesTable(),
+        fixPatientsColumns(),
+      ]);
+      if (rolesFixed || patientsFixed) {
         console.log("🔧 Database schema was updated");
       } else {
         console.log("✅ Database schema is up to date");
       }
     } catch (fixError) {
-      console.error("⚠️  Fix script error (continuing anyway):", fixError.message);
+      console.error(
+        "⚠️  Fix script error (continuing anyway):",
+        fixError.message
+      );
     }
 
     // Now start the server
