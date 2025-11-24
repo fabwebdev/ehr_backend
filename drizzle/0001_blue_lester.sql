@@ -843,14 +843,80 @@ CREATE TABLE IF NOT EXISTS "vital_signs" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE cascade;--> statement-breakpoint
-ALTER TABLE "cardiac_assessment" ADD CONSTRAINT "cardiac_assessment_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "discharge" ADD CONSTRAINT "discharge_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "endocrine_assessment" ADD CONSTRAINT "endocrine_assessment_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "living_arrangements" ADD CONSTRAINT "living_arrangements_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "nutrition_assessment" ADD CONSTRAINT "nutrition_assessment_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "prognosis" ADD CONSTRAINT "prognosis_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "signature" ADD CONSTRAINT "signature_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "spiritual_preference" ADD CONSTRAINT "spiritual_preference_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;
+DO $do$
+BEGIN
+    ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+    WHEN duplicate_object THEN
+        RAISE NOTICE 'Constraint accounts_user_id_users_id_fk already exists, skipping.';
+END $do$;--> statement-breakpoint
+DO $do$
+BEGIN
+    ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE cascade;
+EXCEPTION
+    WHEN duplicate_object THEN
+        RAISE NOTICE 'Constraint audit_logs_user_id_users_id_fk already exists, skipping.';
+END $do$;--> statement-breakpoint
+DO $do$
+BEGIN
+    ALTER TABLE "cardiac_assessment" ADD CONSTRAINT "cardiac_assessment_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+    WHEN duplicate_object THEN
+        RAISE NOTICE 'Constraint cardiac_assessment_patient_id_patients_id_fk already exists, skipping.';
+END $do$;--> statement-breakpoint
+DO $do$
+BEGIN
+    ALTER TABLE "discharge" ADD CONSTRAINT "discharge_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+    WHEN duplicate_object THEN
+        RAISE NOTICE 'Constraint discharge_patient_id_patients_id_fk already exists, skipping.';
+END $do$;--> statement-breakpoint
+DO $do$
+BEGIN
+    ALTER TABLE "endocrine_assessment" ADD CONSTRAINT "endocrine_assessment_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+    WHEN duplicate_object THEN
+        RAISE NOTICE 'Constraint endocrine_assessment_patient_id_patients_id_fk already exists, skipping.';
+END $do$;--> statement-breakpoint
+DO $do$
+BEGIN
+    ALTER TABLE "living_arrangements" ADD CONSTRAINT "living_arrangements_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+    WHEN duplicate_object THEN
+        RAISE NOTICE 'Constraint living_arrangements_patient_id_patients_id_fk already exists, skipping.';
+END $do$;--> statement-breakpoint
+DO $do$
+BEGIN
+    ALTER TABLE "nutrition_assessment" ADD CONSTRAINT "nutrition_assessment_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+    WHEN duplicate_object THEN
+        RAISE NOTICE 'Constraint nutrition_assessment_patient_id_patients_id_fk already exists, skipping.';
+END $do$;--> statement-breakpoint
+DO $do$
+BEGIN
+    ALTER TABLE "prognosis" ADD CONSTRAINT "prognosis_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+    WHEN duplicate_object THEN
+        RAISE NOTICE 'Constraint prognosis_patient_id_patients_id_fk already exists, skipping.';
+END $do$;--> statement-breakpoint
+DO $do$
+BEGIN
+    ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+    WHEN duplicate_object THEN
+        RAISE NOTICE 'Constraint sessions_user_id_users_id_fk already exists, skipping.';
+END $do$;--> statement-breakpoint
+DO $do$
+BEGIN
+    ALTER TABLE "signature" ADD CONSTRAINT "signature_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+    WHEN duplicate_object THEN
+        RAISE NOTICE 'Constraint signature_patient_id_patients_id_fk already exists, skipping.';
+END $do$;--> statement-breakpoint
+DO $do$
+BEGIN
+    ALTER TABLE "spiritual_preference" ADD CONSTRAINT "spiritual_preference_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+    WHEN duplicate_object THEN
+        RAISE NOTICE 'Constraint spiritual_preference_patient_id_patients_id_fk already exists, skipping.';
+END $do$;
