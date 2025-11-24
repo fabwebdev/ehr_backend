@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Healthcare Charts Backend</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f7fa;
+      }
+      .container {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        margin-top: 30px;
+      }
+      h1 {
+        color: #2c3e50;
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .endpoint {
+        background-color: #f8f9fa;
+        border-left: 4px solid #3498db;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 0 4px 4px 0;
+      }
+      .endpoint-method {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-weight: bold;
+        margin-right: 10px;
+      }
+      .get {
+        background-color: #3498db;
+        color: white;
+      }
+      .post {
+        background-color: #2ecc71;
+        color: white;
+      }
+      .put {
+        background-color: #f39c12;
+        color: white;
+      }
+      .delete {
+        background-color: #e74c3c;
+        color: white;
+      }
+      .endpoint-path {
+        font-family: "Courier New", monospace;
+        font-weight: bold;
+      }
+      .endpoint-description {
+        margin-top: 8px;
+        color: #555;
+      }
+      .note {
+        background-color: #fff8e1;
+        border-left: 4px solid #ffc107;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 0 4px 4px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Healthcare Charts Backend API</h1>
+
+      <p>
+        Welcome to the Healthcare Charts Backend API. This Express.js
+        application provides RESTful endpoints for managing healthcare data.
+      </p>
+
+      <div class="note">
+        <strong>Note:</strong> This is a backend API service. All endpoints are
+        prefixed with <code>/api</code>.
+      </div>
+
+      <h2>Available Endpoints</h2>
+
+      <div class="endpoint">
+        <span class="endpoint-method get">GET</span>
+        <span class="endpoint-path">/api/patients</span>
+        <div class="endpoint-description">Retrieve a list of all patients</div>
+      </div>
+
+      <div class="endpoint">
+        <span class="endpoint-method get">GET</span>
+        <span class="endpoint-path">/api/patients/:id</span>
+        <div class="endpoint-description">
+          Retrieve a specific patient by ID
+        </div>
+      </div>
+
+      <div class="endpoint">
+        <span class="endpoint-method post">POST</span>
+        <span class="endpoint-path">/api/patients</span>
+        <div class="endpoint-description">Create a new patient</div>
+      </div>
+
+      <div class="endpoint">
+        <span class="endpoint-method put">PUT</span>
+        <span class="endpoint-path">/api/patients/:id</span>
+        <div class="endpoint-description">Update an existing patient</div>
+      </div>
+
+      <div class="endpoint">
+        <span class="endpoint-method delete">DELETE</span>
+        <span class="endpoint-path">/api/patients/:id</span>
+        <div class="endpoint-description">Delete a patient</div>
+      </div>
+
+      <div class="endpoint">
+        <span class="endpoint-method get">GET</span>
+        <span class="endpoint-path">/api/pain-assessments</span>
+        <div class="endpoint-description">
+          Retrieve a list of all pain assessments
+        </div>
+      </div>
+
+      <div class="endpoint">
+        <span class="endpoint-method get">GET</span>
+        <span class="endpoint-path">/api/pain-assessments/:id</span>
+        <div class="endpoint-description">
+          Retrieve a specific pain assessment by ID
+        </div>
+      </div>
+
+      <div class="endpoint">
+        <span class="endpoint-method post">POST</span>
+        <span class="endpoint-path">/api/pain-assessments</span>
+        <div class="endpoint-description">Create a new pain assessment</div>
+      </div>
+
+      <div class="endpoint">
+        <span class="endpoint-method get">GET</span>
+        <span class="endpoint-path">/api/nursing-notes</span>
+        <div class="endpoint-description">
+          Retrieve a list of all nursing clinical notes
+        </div>
+      </div>
+
+      <div class="endpoint">
+        <span class="endpoint-method get">GET</span>
+        <span class="endpoint-path">/api/nursing-notes/:id</span>
+        <div class="endpoint-description">
+          Retrieve a specific nursing note by ID
+        </div>
+      </div>
+
+      <div class="endpoint">
+        <span class="endpoint-method post">POST</span>
+        <span class="endpoint-path">/api/nursing-notes</span>
+        <div class="endpoint-description">
+          Create a new nursing clinical note
+        </div>
+      </div>
+
+      <div class="note">
+        <strong>Authentication:</strong> Most endpoints require authentication
+        via JWT tokens. Include the token in the Authorization header as "Bearer
+        [token]".
+      </div>
+
+      <p>
+        For detailed API documentation, please refer to the project
+        documentation or contact the development team.
+      </p>
+    </div>
+  </body>
+</html>

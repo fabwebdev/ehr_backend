@@ -1,0 +1,25 @@
+{
+  "development": {
+    "username": "",
+    "password": "",
+    "database": "database.sqlite",
+    "host": "127.0.0.1",
+    "dialect": "sqlite",
+    "storage": "./database.sqlite"
+  },
+  "test": {
+    "username": "",
+    "password": "",
+    "database": "database_test.sqlite",
+    "host": "127.0.0.1",
+    "dialect": "sqlite",
+    "storage": "./database_test.sqlite"
+  },
+  "production": {
+    "username": "hospici",
+    "password": "hospici",
+    "database": "postgresdb",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  }
+}

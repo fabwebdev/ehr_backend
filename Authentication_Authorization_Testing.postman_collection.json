@@ -1,0 +1,316 @@
+{
+  "info": {
+    "_postman_id": "authentication-authorization-testing",
+    "name": "Authentication & Authorization Testing",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication (Better Auth)",
+      "item": [
+        {
+          "name": "Sign Up",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"name\": \"Test User\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sign-up",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "sign-up"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sign In",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sign-in",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "sign-in"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/session",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "session"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sign Out",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sign-out",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "sign-out"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "RBAC (Role-Based Access Control)",
+      "item": [
+        {
+          "name": "Get All Roles (Admin Only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rbac/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rbac", "roles"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Permissions (Admin Only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rbac/permissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rbac", "permissions"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Healthcare Staff Route",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/abac-demo/rbac-only/healthcare",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "abac-demo", "rbac-only", "healthcare"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin Only Route",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/abac-demo/rbac-only/admin",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "abac-demo", "rbac-only", "admin"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "ABAC (Attribute-Based Access Control)",
+      "item": [
+        {
+          "name": "Patient Record Access (Ownership)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/abac-demo/abac-only/patient/123",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "abac-demo", "abac-only", "patient", "123"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Department-Based Access",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/abac-demo/abac-only/department",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "abac-demo", "abac-only", "department"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "RBAC + ABAC Combinations",
+      "item": [
+        {
+          "name": "RBAC AND ABAC",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/abac-demo/rbac-and-abac/test",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "abac-demo", "rbac-and-abac", "test"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "RBAC OR ABAC",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/abac-demo/rbac-or-abac/test",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "abac-demo", "rbac-or-abac", "test"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "CASL (Central Authentication Service Language)",
+      "item": [
+        {
+          "name": "Check View Patient Ability",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/casl-demo/can-view-patients",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "casl-demo", "can-view-patients"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Require View Patient Ability",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/casl-demo/require-view-patients",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "casl-demo", "require-view-patients"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Require Any Patient Abilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/casl-demo/require-any-patient-abilities",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "casl-demo", "require-any-patient-abilities"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Require All Patient Abilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/casl-demo/require-all-patient-abilities",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "casl-demo", "require-all-patient-abilities"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Manual Ability Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/casl-demo/manual-check",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "casl-demo", "manual-check"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin Only Route",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/casl-demo/admin-only",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "casl-demo", "admin-only"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "email",
+      "value": "test@example.com"
+    },
+    {
+      "key": "password",
+      "value": "password123"
+    }
+  ]
+}

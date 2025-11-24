@@ -1,0 +1,7 @@
+-- Add ABAC fields to users table
+ALTER TABLE users ADD COLUMN
+IF NOT EXISTS department VARCHAR
+(255);
+ALTER TABLE users ADD COLUMN
+IF NOT EXISTS location VARCHAR
+(255);
