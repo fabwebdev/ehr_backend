@@ -2,8 +2,13 @@
 // Validation should be done in route definitions using Fastify's schema
 import { db } from "../config/db.drizzle.js";
 import { users, roles } from "../db/schemas/index.js";
+import { accounts } from "../db/schemas/index.js";
 import { user_has_roles } from "../db/schemas/index.js";
 import { eq, like, and } from "drizzle-orm";
+import bcrypt from "bcrypt";
+import { nanoid } from "nanoid";
+import auth from "../config/betterAuth.js";
+import { fromNodeHeaders } from "better-auth/node";
 
 // Get all users with roles
 export const getAllUsers = async (request, reply) => {
@@ -105,23 +110,47 @@ export const createUser = async (request, reply) => {
     }
 
     // Generate name from firstName and lastName (name is optional, will be auto-generated)
-    const finalName = name || `${firstName} ${lastName}`.trim();
+    const finalName = name || `${firstName} ${lastName}`.trim() || "User";
 
-    // Create user
-    const now = new Date();
-    const userResult = await db
-      .insert(users)
-      .values({
+    // Use Better Auth API to create user (this automatically creates account record)
+    const signupResponse = await auth.api.signUpEmail({
+      body: {
+        email: email,
+        password: password,
         name: finalName,
+      },
+      headers: fromNodeHeaders(request.headers || {}),
+      cookies: request.cookies || {},
+    });
+
+    if (!signupResponse || !signupResponse.user) {
+      reply.code(500);
+      return {
+        status: 500,
+        message: "Failed to create user via Better Auth",
+      };
+    }
+
+    const userId = signupResponse.user.id;
+
+    // Update user with additional fields (firstName, lastName, contact)
+    const now = new Date();
+    await db
+      .update(users)
+      .set({
         firstName: firstName || null,
         lastName: lastName || null,
-        email,
-        password,
         contact: contact || null,
-        createdAt: now,
         updatedAt: now,
       })
-      .returning();
+      .where(eq(users.id, userId));
+
+    // Get the updated user
+    const userResult = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
     const user = userResult[0];
 
@@ -285,9 +314,15 @@ export const updateUser = async (request, reply) => {
     if (firstName !== undefined) updateData.firstName = firstName;
     if (lastName !== undefined) updateData.lastName = lastName;
     if (email !== undefined) updateData.email = email;
-    if (password !== undefined) updateData.password = password;
     if (contact !== undefined) updateData.contact = contact;
     if (request.body.image !== undefined) updateData.image = request.body.image;
+
+    // Hash password if it's being updated
+    let hashedPassword = null;
+    if (password !== undefined && password !== null && password !== "") {
+      hashedPassword = await bcrypt.hash(password, 10);
+      updateData.password = hashedPassword;
+    }
 
     // Check if there are any fields to update
     if (Object.keys(updateData).length === 0) {
@@ -309,6 +344,39 @@ export const updateUser = async (request, reply) => {
       .returning();
 
     const updatedUser = updatedUserResult[0];
+
+    // Update account record if password was changed or if account doesn't exist
+    if (hashedPassword !== null) {
+      // Check if account exists
+      const existingAccount = await db
+        .select()
+        .from(accounts)
+        .where(eq(accounts.userId, id))
+        .limit(1);
+
+      if (existingAccount.length > 0) {
+        // Update existing account password
+        await db
+          .update(accounts)
+          .set({
+            password: hashedPassword,
+            updatedAt: new Date(),
+          })
+          .where(eq(accounts.userId, id));
+      } else {
+        // Create account record if it doesn't exist
+        const accountId = nanoid();
+        await db.insert(accounts).values({
+          id: accountId,
+          userId: id,
+          accountId: updatedUser.email,
+          providerId: "credential",
+          password: hashedPassword,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+    }
 
     // Update role if provided
     if (role !== undefined) {
