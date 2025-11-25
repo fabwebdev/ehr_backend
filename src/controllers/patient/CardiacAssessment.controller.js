@@ -2,6 +2,7 @@ import { db } from "../../config/db.drizzle.js";
 import { cardiac_assessment } from "../../db/schemas/cardiacAssessment.schema.js";
 import { cardiac } from "../../db/schemas/cardiac.schema.js";
 import { eq } from "drizzle-orm";
+import { logAudit } from "../../middleware/audit.middleware.js";
 
 class CardiacAssessmentController {
     // Get all cardiac assessments
@@ -66,21 +67,29 @@ class CardiacAssessmentController {
                 : cardiac_ids;
 
             let result;
+            let action;
+            const now = new Date();
             if (existingAssessment) {
                 // Update existing cardiac assessment
                 result = await db.update(cardiac_assessment)
-                    .set({ cardiac_ids: cardiacIdsString })
+                    .set({ cardiac_ids: cardiacIdsString, updatedAt: now })
                     .where(eq(cardiac_assessment.patient_id, patient_id))
                     .returning();
                 result = result[0];
+                action = "UPDATE";
             } else {
                 // Create new cardiac assessment
                 result = await db.insert(cardiac_assessment).values({
                     patient_id: patient_id,
                     cardiac_ids: cardiacIdsString,
+                    createdAt: now,
+                    updatedAt: now,
                 }).returning();
                 result = result[0];
+                action = "CREATE";
             }
+
+            await logAudit(request, action, "cardiac_assessment", result.id);
 
             reply.code(201);
             return {
@@ -111,6 +120,8 @@ class CardiacAssessmentController {
                     error: "No cardiac assessment found for this patient",
                 };
             }
+
+            await logAudit(request, "READ", "cardiac_assessment", cardiacAssessment.id);
 
             reply.code(200);
             return cardiacAssessment;

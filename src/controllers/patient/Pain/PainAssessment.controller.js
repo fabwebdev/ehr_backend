@@ -22,6 +22,7 @@ import {
   pain_active_problem,
 } from "../../../db/schemas/index.js";
 import { eq, and } from "drizzle-orm";
+import { logAudit } from "../../../middleware/audit.middleware.js";
 
 // Index - get all pain assessments
 export const index = async (request, reply) => {
@@ -87,6 +88,8 @@ export const painLevelSeveritystore = async (request, reply) => {
     const painAssessment = existingAssessment[0];
 
     let result;
+    let action;
+    const now = new Date();
     if (painAssessment) {
       // Update existing record
       const updatedAssessment = await db
@@ -96,10 +99,12 @@ export const painLevelSeveritystore = async (request, reply) => {
           acceptable_level_of_pain,
           worst_pain_level,
           primary_pain_site,
+          updatedAt: now,
         })
         .where(eq(pain_assessments.patient_id, parseInt(patient_id)))
         .returning();
       result = updatedAssessment[0];
+      action = "UPDATE";
     } else {
       // Create new record
       const newAssessment = await db
@@ -110,10 +115,15 @@ export const painLevelSeveritystore = async (request, reply) => {
           acceptable_level_of_pain,
           worst_pain_level,
           primary_pain_site,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newAssessment[0];
+      action = "CREATE";
     }
+
+    await logAudit(request, action, "pain_assessments", result.id);
 
     reply.code(201);
     return {

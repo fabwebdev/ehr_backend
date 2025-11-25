@@ -2,12 +2,17 @@ import { db } from "../../config/db.drizzle.js";
 import { discharge } from "../../db/schemas/discharge.schema.js";
 import { discharge_sections } from "../../db/schemas/dischargeSection.schema.js";
 import { eq } from "drizzle-orm";
+import { logAudit } from "../../middleware/audit.middleware.js";
 
 class DischargeController {
     // Get all discharges
     async index(request, reply) {
         try {
             const discharges = await db.select().from(discharge);
+            
+            // Log audit - READ operation on discharge table
+            await logAudit(request, 'READ', 'discharge', null);
+            
             reply.code(200);
             return discharges;
         } catch (error) {
@@ -60,6 +65,7 @@ class DischargeController {
             const existingDischarge = existingDischarges[0];
 
             // Prepare data for update or create
+            const now = new Date();
             const dischargeData = {
                 patient_id: patient_id,
                 type_of_record: type_of_record || null,
@@ -75,9 +81,11 @@ class DischargeController {
                 reason_for_discharge: Array.isArray(reason_for_discharge)
                     ? reason_for_discharge.join(",")
                     : reason_for_discharge || null,
+                updatedAt: now,
             };
 
             let result;
+            let action;
             if (existingDischarge) {
                 // Update existing discharge
                 result = await db.update(discharge)
@@ -85,13 +93,21 @@ class DischargeController {
                     .where(eq(discharge.patient_id, patient_id))
                     .returning();
                 result = result[0];
+                action = 'UPDATE';
             } else {
                 // Create new discharge
                 result = await db.insert(discharge)
-                    .values(dischargeData)
+                    .values({
+                        ...dischargeData,
+                        createdAt: now,
+                    })
                     .returning();
                 result = result[0];
+                action = 'CREATE';
             }
+
+            // Log audit - CREATE or UPDATE operation on discharge table
+            await logAudit(request, action, 'discharge', result.id);
 
             reply.code(201);
             return {
@@ -124,6 +140,9 @@ class DischargeController {
                     error: "No discharge found for this patient",
                 };
             }
+
+            // Log audit - READ operation on discharge table
+            await logAudit(request, 'READ', 'discharge', dischargeRecord.id);
 
             reply.code(200);
             return dischargeRecord;

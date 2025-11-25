@@ -3,6 +3,7 @@ import { patients } from "../../db/schemas/patient.schema.js";
 import { benefit_periods } from "../../db/schemas/benefitPeriod.schema.js";
 import { nursing_clinical_notes } from "../../db/schemas/nursingClinicalNote.schema.js";
 import { eq, desc } from "drizzle-orm";
+import { logAudit } from "../../middleware/audit.middleware.js";
 
 class BenefitPeriodController {
     // Create next benefit period for a patient
@@ -50,12 +51,18 @@ class BenefitPeriodController {
             endDate.setDate(endDate.getDate() + duration - 1);
 
             // Create the new benefit period
+            const now = new Date();
             const newBenefitPeriod = await db.insert(benefit_periods).values({
                 patient_id: patientId,
                 start_date: startDate,
                 end_date: endDate,
                 period_number: periodNumber,
+                createdAt: now,
+                updatedAt: now,
             }).returning();
+
+            // Log audit - CREATE benefit period
+            await logAudit(request, 'CREATE', 'benefit_periods', newBenefitPeriod[0]?.id);
 
             reply.code(201);
             return {
@@ -90,11 +97,17 @@ class BenefitPeriodController {
             }
 
             // Create the nursing clinical note
+            const now = new Date();
             const nursingClinicalNote = await db.insert(nursing_clinical_notes).values({
                 benefit_period_id: benefitPeriodId,
                 note_date: note_date,
                 note: note,
+                createdAt: now,
+                updatedAt: now,
             }).returning();
+
+            // Log audit - CREATE nursing clinical note
+            await logAudit(request, 'CREATE', 'nursing_clinical_notes', nursingClinicalNote[0]?.id);
 
             reply.code(201);
             return {
@@ -141,6 +154,9 @@ class BenefitPeriodController {
                     };
                 }))
             };
+
+            // Log audit - READ benefit periods (patient chart)
+            await logAudit(request, 'READ', 'benefit_periods', parseInt(id));
 
             return patientWithRelations;
         } catch (error) {

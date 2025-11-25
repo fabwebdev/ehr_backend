@@ -2,11 +2,16 @@
 import { db } from "../../config/db.drizzle.js";
 import { patients } from "../../db/schemas/index.js";
 import { eq } from "drizzle-orm";
+import { logAudit } from "../../middleware/audit.middleware.js";
 
 // Get all patients
 export const index = async (request, reply) => {
     try {
         const patientsList = await db.select().from(patients);
+        
+        // Log audit - READ operation on patients table
+        await logAudit(request, 'READ', 'patients', null);
+        
         reply.code(200);
             return patientsList;
     } catch (error) {
@@ -42,6 +47,9 @@ export const store = async (request, reply) => {
         
         const newPatient = await db.insert(patients).values(patientData).returning();
         const patient = newPatient[0];
+
+        // Log audit - CREATE operation on patients table
+        await logAudit(request, 'CREATE', 'patients', patient.id);
 
         reply.code(201);
             return {
@@ -88,6 +96,9 @@ export const show = async (request, reply) => {
             reply.code(404);
             return { error: "Patient not found" };
         }
+
+        // Log audit - READ operation on patients table
+        await logAudit(request, 'READ', 'patients', parseInt(id));
 
         reply.code(200);
             return patient;
@@ -143,6 +154,9 @@ export const update = async (request, reply) => {
             .returning();
         const result = updatedPatient[0];
 
+        // Log audit - UPDATE operation on patients table
+        await logAudit(request, 'UPDATE', 'patients', parseInt(id));
+
         reply.code(200);
             return {
             message: "Patient updated successfully.",
@@ -171,6 +185,9 @@ export const destroy = async (request, reply) => {
         }
 
         await db.delete(patients).where(eq(patients.id, parseInt(id)));
+
+        // Log audit - DELETE operation on patients table
+        await logAudit(request, 'DELETE', 'patients', parseInt(id));
 
         reply.code(200);
             return {
