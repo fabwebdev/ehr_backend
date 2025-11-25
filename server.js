@@ -29,10 +29,34 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Create Fastify app
+// Create Fastify app with Pino logger configured for audit logging
 const app = Fastify({
   logger: {
     level: process.env.LOG_LEVEL || "info",
+    // Configure Pino for structured logging (required for audit)
+    serializers: {
+      req: (req) => ({
+        method: req.method,
+        url: req.url,
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      }),
+      res: (res) => ({
+        statusCode: res.statusCode
+      })
+    },
+    // Enable redaction to prevent logging sensitive data
+    redact: {
+      paths: [
+        'req.body.password',
+        'req.body.email',
+        'req.body.old_value',
+        'req.body.new_value',
+        'req.body.*.password',
+        'req.body.*.email'
+      ],
+      remove: true
+    }
   },
   trustProxy: true, // Enable trust proxy for Render/deployment platforms
   bodyLimit: 50 * 1024 * 1024, // 50mb
@@ -190,6 +214,25 @@ app.addHook("onSend", async (request, reply) => {
 
 // Register cookie fix middleware as a hook
 app.addHook("onRequest", cookieFixMiddleware);
+
+// Register audit logging hook for patient routes
+// This will log all health data operations
+app.addHook("onResponse", async (request, reply) => {
+  // Only log audit for patient-related routes
+  if (request.url.startsWith("/api/patient") || 
+      request.url.startsWith("/api/discharge") ||
+      request.url.startsWith("/api/admission-information") ||
+      request.url.startsWith("/api/cardiac-assessment") ||
+      request.url.startsWith("/api/benefit-period")) {
+    try {
+      const { auditLogHandler } = await import("./src/middleware/audit.middleware.js");
+      await auditLogHandler(request, reply);
+    } catch (error) {
+      // Don't fail the request if audit logging fails
+      console.error("Audit logging hook error:", error);
+    }
+  }
+});
 
 // Add Origin header if missing (for Postman/API client testing)
 app.addHook("onRequest", async (request, reply) => {

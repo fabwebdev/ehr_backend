@@ -2,11 +2,16 @@
 import { db } from "../../config/db.drizzle.js";
 import { admission_information } from "../../db/schemas/admissionInformation.schema.js";
 import { eq } from "drizzle-orm";
+import { logAudit } from "../../middleware/audit.middleware.js";
 
 // Get all admission information
 export const index = async (request, reply) => {
     try {
         const admissionInfo = await db.select().from(admission_information);
+        
+        // Log audit - READ operation on admission_information table
+        await logAudit(request, 'READ', 'admission_information', null);
+        
         return admissionInfo;
     } catch (error) {
         console.error("Error in index:", error);
@@ -28,20 +33,41 @@ export const autoSave = async (request, reply) => {
         const admissionInfo = existingAdmissionInfo[0];
 
         let result;
+        let action;
+        const now = new Date();
         if (admissionInfo) {
             // Update existing record
+            const updateData = {
+                ...admissionData,
+                createdAt: undefined, // prevent overwriting
+                created_at: undefined,
+                updatedAt: now,
+                updated_at: now,
+            };
+
             result = await db.update(admission_information)
-                .set(admissionData)
+                .set(updateData)
                 .where(eq(admission_information.patient_id, admissionData.patient_id))
                 .returning();
             result = result[0];
+            action = 'UPDATE';
         } else {
             // Create new record
+            const newData = {
+                ...admissionData,
+                createdAt: now,
+                updatedAt: now,
+            };
+
             result = await db.insert(admission_information)
-                .values(admissionData)
+                .values(newData)
                 .returning();
             result = result[0];
+            action = 'CREATE';
         }
+
+        // Log audit - CREATE or UPDATE operation on admission_information table
+        await logAudit(request, action, 'admission_information', result.id);
 
         reply.code(201);
             return {
@@ -68,6 +94,9 @@ export const show = async (request, reply) => {
             reply.code(404);
             return { error: "Admission information not found" };
         }
+
+        // Log audit - READ operation on admission_information table
+        await logAudit(request, 'READ', 'admission_information', parseInt(id));
 
         return info;
     } catch (error) {
