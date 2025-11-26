@@ -864,50 +864,94 @@ export const typeOfPainRatingScaleUsedById = async (request, reply) => {
 // Pain Vital Signs Store
 export const painVitalSignsStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
+    const { patient_id, id, createdAt, updatedAt, ...validatedData } = request.body;
 
-    const { patient_id, ...validatedData } = request.body;
+    // Validate patient_id is provided
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    // Validate patient_id is a valid number
+    const patientIdNum = parseInt(patient_id);
+    if (isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a valid number" }],
+      };
+    }
 
     // Check if patient already has pain vital signs
     const existingVitalSigns = await db
       .select()
       .from(pain_vital_signs)
-      .where(eq(pain_vital_signs.patient_id, parseInt(patient_id)))
+      .where(eq(pain_vital_signs.patient_id, patientIdNum))
       .limit(1);
     const painVitalSigns = existingVitalSigns[0];
 
     if (painVitalSigns) {
       // Update existing record
+      // Remove any timestamp fields that might be strings
+      const updateData = { ...validatedData };
+      delete updateData.createdAt;
+      delete updateData.updatedAt;
+      
       const updatedVitalSigns = await db
         .update(pain_vital_signs)
-        .set(validatedData)
-        .where(eq(pain_vital_signs.patient_id, parseInt(patient_id)))
+        .set({
+          ...updateData,
+          updatedAt: new Date(),
+        })
+        .where(eq(pain_vital_signs.patient_id, patientIdNum))
         .returning();
       reply.code(200);
       return {
+        status: 200,
         message: "Pain vital signs updated successfully",
         data: updatedVitalSigns[0],
       };
     } else {
       // Create new record
+      // Remove any timestamp fields that might be strings
+      const insertData = { ...validatedData };
+      delete insertData.createdAt;
+      delete insertData.updatedAt;
+      
       const newVitalSigns = await db
         .insert(pain_vital_signs)
         .values({
-          patient_id: parseInt(patient_id),
-          ...validatedData,
+          patient_id: patientIdNum,
+          ...insertData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         })
         .returning();
       reply.code(201);
       return {
+        status: 201,
         message: "Pain vital signs created successfully",
         data: newVitalSigns[0],
       };
     }
   } catch (error) {
     console.error("Error in painVitalSignsStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 
