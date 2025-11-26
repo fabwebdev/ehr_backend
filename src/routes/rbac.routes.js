@@ -1,6 +1,9 @@
 import { ROLES, PERMISSIONS, ROLE_PERMISSIONS } from '../config/rbac.js';
 import { verifyToken } from '../middleware/betterAuth.middleware.js';
 import { requireAdmin } from '../middleware/rbac.middleware.js';
+import { db } from '../config/db.drizzle.js';
+import { roles, permissions, role_has_permissions } from '../db/schemas/index.js';
+import { eq, and } from 'drizzle-orm';
 
 // Fastify plugin for RBAC routes
 async function rbacRoutes(fastify, options) {
@@ -102,6 +105,129 @@ async function rbacRoutes(fastify, options) {
       return {
         status: 500,
         message: 'Server error while fetching role permissions'
+      };
+    }
+  });
+
+  // Update role permissions (PUT /api/rbac/roles/:role)
+  // This route handles both /api/rbac/roles/:role and /api/rbac/roles/:role/permissions
+  fastify.put('/roles/:role', {
+    preHandler: [verifyToken, requireAdmin],
+  }, async (request, reply) => {
+    try {
+      const { role: roleName } = request.params;
+      const { permissions: permissionIds } = request.body;
+      
+      // Validate role name
+      if (!Object.values(ROLES).includes(roleName)) {
+        reply.code(404);
+        return {
+          status: 404,
+          message: 'Role not found'
+        };
+      }
+
+      // Find role by name to get role ID
+      const roleResult = await db
+        .select()
+        .from(roles)
+        .where(eq(roles.name, roleName))
+        .limit(1);
+
+      if (roleResult.length === 0) {
+        reply.code(404);
+        return {
+          status: 404,
+          message: 'Role not found in database'
+        };
+      }
+
+      const roleId = roleResult[0].id;
+
+      // Validate permissions array
+      if (!Array.isArray(permissionIds)) {
+        reply.code(400);
+        return {
+          status: 400,
+          message: 'Permissions must be an array'
+        };
+      }
+
+      // Remove all existing permissions for this role
+      await db
+        .delete(role_has_permissions)
+        .where(eq(role_has_permissions.role_id, roleId));
+
+      // Add new permissions if provided
+      if (permissionIds.length > 0) {
+        // Validate and convert permission IDs to numbers
+        const validPermissionIds = permissionIds
+          .filter(id => id !== null && id !== undefined)
+          .map(id => {
+            if (typeof id === 'number') return id;
+            if (typeof id === 'string' && !isNaN(id)) return parseInt(id);
+            return null;
+          })
+          .filter(id => id !== null);
+
+        if (validPermissionIds.length > 0) {
+          // Verify all permission IDs exist in database
+          const existingPermissions = await db
+            .select()
+            .from(permissions)
+            .where(eq(permissions.id, validPermissionIds[0])); // Sample check
+
+          // Insert new role-permission associations
+          const rolePermissionValues = validPermissionIds.map(permissionId => ({
+            role_id: roleId,
+            permission_id: permissionId
+          }));
+
+          try {
+            await db.insert(role_has_permissions).values(rolePermissionValues);
+          } catch (insertError) {
+            // If insert fails (e.g., invalid permission ID), return error
+            console.error('Error inserting role permissions:', insertError);
+            reply.code(400);
+            return {
+              status: 400,
+              message: 'Invalid permission IDs provided. Some permissions may not exist.'
+            };
+          }
+        }
+      }
+
+      // Fetch updated role with permissions
+      const rolePermissions = await db
+        .select()
+        .from(role_has_permissions)
+        .where(eq(role_has_permissions.role_id, roleId));
+
+      const permissionDetails = [];
+      for (const rp of rolePermissions) {
+        const perm = await db
+          .select()
+          .from(permissions)
+          .where(eq(permissions.id, rp.permission_id));
+        if (perm.length > 0) {
+          permissionDetails.push(perm[0]);
+        }
+      }
+
+      return {
+        status: 200,
+        message: `Permissions updated for role ${roleName}`,
+        data: {
+          role: roleResult[0],
+          permissions: permissionDetails
+        }
+      };
+    } catch (error) {
+      console.error('Error updating role permissions:', error);
+      reply.code(500);
+      return {
+        status: 500,
+        message: 'Server error while updating role permissions'
       };
     }
   });
