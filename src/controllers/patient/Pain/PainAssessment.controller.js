@@ -1002,7 +1002,10 @@ export const painScalesToolsLabDataReviewsStore = async (request, reply) => {
       // Update existing record
       const updatedReviews = await db
         .update(pain_scales_tools_lab_data_reviews)
-        .set(validatedData)
+        .set({
+          ...validatedData,
+          updatedAt: new Date(),
+        })
         .where(
           eq(
             pain_scales_tools_lab_data_reviews.patient_id,
@@ -1013,11 +1016,14 @@ export const painScalesToolsLabDataReviewsStore = async (request, reply) => {
       result = updatedReviews[0];
     } else {
       // Create new record
+      const now = new Date();
       const newReviews = await db
         .insert(pain_scales_tools_lab_data_reviews)
         .values({
           patient_id: parseInt(patient_id),
           ...validatedData,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newReviews[0];
