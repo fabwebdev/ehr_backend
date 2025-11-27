@@ -140,34 +140,64 @@ export const painLevelSeveritystore = async (request, reply) => {
 // Pain Rated By Store
 export const painRatedByStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
-
     const { patient_id, pain_rated_by_id } = request.body;
+
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    const patientIdNum = parseInt(patient_id);
+    if (Number.isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a number" }],
+      };
+    }
+
+    const normalizedRatedBy = (() => {
+      if (pain_rated_by_id === undefined || pain_rated_by_id === null) {
+        return null;
+      }
+      if (Array.isArray(pain_rated_by_id)) {
+        return pain_rated_by_id.length > 0 ? String(pain_rated_by_id[0]) : null;
+      }
+      return String(pain_rated_by_id);
+    })();
 
     const existingRatedBy = await db
       .select()
       .from(pain_rated_by)
-      .where(eq(pain_rated_by.patient_id, parseInt(patient_id)))
+      .where(eq(pain_rated_by.patient_id, patientIdNum))
       .limit(1);
     const painRatedBy = existingRatedBy[0];
 
+    const now = new Date();
     let result;
     if (painRatedBy) {
-      // Update existing record
       const updatedRatedBy = await db
         .update(pain_rated_by)
-        .set({ pain_rated_by_id })
-        .where(eq(pain_rated_by.patient_id, parseInt(patient_id)))
+        .set({
+          pain_rated_by_id: normalizedRatedBy,
+          updatedAt: now,
+        })
+        .where(eq(pain_rated_by.patient_id, patientIdNum))
         .returning();
       result = updatedRatedBy[0];
     } else {
-      // Create new record
       const newRatedBy = await db
         .insert(pain_rated_by)
         .values({
-          patient_id: parseInt(patient_id),
-          pain_rated_by_id,
+          patient_id: patientIdNum,
+          pain_rated_by_id: normalizedRatedBy,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newRatedBy[0];
@@ -175,13 +205,23 @@ export const painRatedByStore = async (request, reply) => {
 
     reply.code(201);
     return {
+      status: 201,
       message: "painRatedBy created or updated successfully.",
       data: result,
     };
   } catch (error) {
     console.error("Error in painRatedByStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 
@@ -213,45 +253,89 @@ export const painRatedById = async (request, reply) => {
 // Pain Duration Store
 export const painDurationStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
+    const { patient_id, pain_duration_id, createdAt, updatedAt, id } =
+      request.body;
 
-    const { patient_id, pain_duration_id } = request.body;
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    const patientIdNum = parseInt(patient_id);
+    if (Number.isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a number" }],
+      };
+    }
+
+    const normalizedDuration = (() => {
+      if (pain_duration_id === undefined || pain_duration_id === null) {
+        return null;
+      }
+      if (Array.isArray(pain_duration_id)) {
+        return pain_duration_id.length > 0 ? String(pain_duration_id[0]) : null;
+      }
+      return String(pain_duration_id);
+    })();
 
     const existingDuration = await db
       .select()
       .from(pain_duration)
-      .where(eq(pain_duration.patient_id, parseInt(patient_id)))
+      .where(eq(pain_duration.patient_id, patientIdNum))
       .limit(1);
     const painDuration = existingDuration[0];
 
+    const now = new Date();
     let result;
     if (painDuration) {
-      // Update existing record
       const updatedDuration = await db
         .update(pain_duration)
-        .set({ pain_duration_id })
-        .where(eq(pain_duration.patient_id, parseInt(patient_id)))
+        .set({
+          pain_duration_id: normalizedDuration,
+          updatedAt: now,
+        })
+        .where(eq(pain_duration.patient_id, patientIdNum))
         .returning();
       result = updatedDuration[0];
     } else {
-      // Create new record
       const newDuration = await db
         .insert(pain_duration)
         .values({
-          patient_id: parseInt(patient_id),
-          pain_duration_id,
+          patient_id: patientIdNum,
+          pain_duration_id: normalizedDuration,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newDuration[0];
     }
 
     reply.code(201);
-    return result;
+    return {
+      status: 201,
+      message: "Pain duration saved successfully",
+      data: result,
+    };
   } catch (error) {
     console.error("Error in painDurationStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 
@@ -283,45 +367,88 @@ export const painDurationById = async (request, reply) => {
 // Pain Frequency Store
 export const painFrequencyStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
-
     const { patient_id, pain_frequency_id } = request.body;
+
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    const patientIdNum = parseInt(patient_id);
+    if (Number.isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a number" }],
+      };
+    }
+
+    const normalizedFrequency = (() => {
+      if (pain_frequency_id === undefined || pain_frequency_id === null) {
+        return null;
+      }
+      if (Array.isArray(pain_frequency_id)) {
+        return pain_frequency_id.length > 0 ? String(pain_frequency_id[0]) : null;
+      }
+      return String(pain_frequency_id);
+    })();
 
     const existingFrequency = await db
       .select()
       .from(pain_frequency)
-      .where(eq(pain_frequency.patient_id, parseInt(patient_id)))
+      .where(eq(pain_frequency.patient_id, patientIdNum))
       .limit(1);
     const painFrequency = existingFrequency[0];
 
+    const now = new Date();
     let result;
     if (painFrequency) {
-      // Update existing record
       const updatedFrequency = await db
         .update(pain_frequency)
-        .set({ pain_frequency_id })
-        .where(eq(pain_frequency.patient_id, parseInt(patient_id)))
+        .set({
+          pain_frequency_id: normalizedFrequency,
+          updatedAt: now,
+        })
+        .where(eq(pain_frequency.patient_id, patientIdNum))
         .returning();
       result = updatedFrequency[0];
     } else {
-      // Create new record
       const newFrequency = await db
         .insert(pain_frequency)
         .values({
-          patient_id: parseInt(patient_id),
-          pain_frequency_id,
+          patient_id: patientIdNum,
+          pain_frequency_id: normalizedFrequency,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newFrequency[0];
     }
 
     reply.code(201);
-    return result;
+    return {
+      status: 201,
+      message: "Pain frequency saved successfully",
+      data: result,
+    };
   } catch (error) {
     console.error("Error in painFrequencyStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 
@@ -355,45 +482,90 @@ export const painFrequencyById = async (request, reply) => {
 // Pain Observation Store
 export const painObservationStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
-
     const { patient_id, pain_observations_id } = request.body;
+
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    const patientIdNum = parseInt(patient_id);
+    if (Number.isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a number" }],
+      };
+    }
+
+    const normalizedObservation = (() => {
+      if (pain_observations_id === undefined || pain_observations_id === null) {
+        return null;
+      }
+      if (Array.isArray(pain_observations_id)) {
+        return pain_observations_id.length > 0
+          ? String(pain_observations_id[0])
+          : null;
+      }
+      return String(pain_observations_id);
+    })();
 
     const existingObservation = await db
       .select()
       .from(pain_observations)
-      .where(eq(pain_observations.patient_id, parseInt(patient_id)))
+      .where(eq(pain_observations.patient_id, patientIdNum))
       .limit(1);
     const painObservation = existingObservation[0];
 
+    const now = new Date();
     let result;
     if (painObservation) {
-      // Update existing record
       const updatedObservation = await db
         .update(pain_observations)
-        .set({ pain_observations_id })
-        .where(eq(pain_observations.patient_id, parseInt(patient_id)))
+        .set({
+          pain_observations_id: normalizedObservation,
+          updatedAt: now,
+        })
+        .where(eq(pain_observations.patient_id, patientIdNum))
         .returning();
       result = updatedObservation[0];
     } else {
-      // Create new record
       const newObservation = await db
         .insert(pain_observations)
         .values({
-          patient_id: parseInt(patient_id),
-          pain_observations_id,
+          patient_id: patientIdNum,
+          pain_observations_id: normalizedObservation,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newObservation[0];
     }
 
     reply.code(201);
-    return result;
+    return {
+      status: 201,
+      message: "Pain observation saved successfully",
+      data: result,
+    };
   } catch (error) {
     console.error("Error in painObservationStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 
@@ -427,45 +599,90 @@ export const painObservationById = async (request, reply) => {
 // Pain Worsened By Store
 export const painWorsenedByStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
-
     const { patient_id, pain_worsened_by_id } = request.body;
+
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    const patientIdNum = parseInt(patient_id);
+    if (Number.isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a number" }],
+      };
+    }
+
+    const normalizedWorsenedBy = (() => {
+      if (pain_worsened_by_id === undefined || pain_worsened_by_id === null) {
+        return null;
+      }
+      if (Array.isArray(pain_worsened_by_id)) {
+        return pain_worsened_by_id.length > 0
+          ? String(pain_worsened_by_id[0])
+          : null;
+      }
+      return String(pain_worsened_by_id);
+    })();
 
     const existingWorsenedBy = await db
       .select()
       .from(pain_worsened_by)
-      .where(eq(pain_worsened_by.patient_id, parseInt(patient_id)))
+      .where(eq(pain_worsened_by.patient_id, patientIdNum))
       .limit(1);
     const painWorsenedBy = existingWorsenedBy[0];
 
+    const now = new Date();
     let result;
     if (painWorsenedBy) {
-      // Update existing record
       const updatedWorsenedBy = await db
         .update(pain_worsened_by)
-        .set({ pain_worsened_by_id })
-        .where(eq(pain_worsened_by.patient_id, parseInt(patient_id)))
+        .set({
+          pain_worsened_by_id: normalizedWorsenedBy,
+          updatedAt: now,
+        })
+        .where(eq(pain_worsened_by.patient_id, patientIdNum))
         .returning();
       result = updatedWorsenedBy[0];
     } else {
-      // Create new record
       const newWorsenedBy = await db
         .insert(pain_worsened_by)
         .values({
-          patient_id: parseInt(patient_id),
-          pain_worsened_by_id,
+          patient_id: patientIdNum,
+          pain_worsened_by_id: normalizedWorsenedBy,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newWorsenedBy[0];
     }
 
     reply.code(201);
-    return result;
+    return {
+      status: 201,
+      message: "Pain worsened-by saved successfully",
+      data: result,
+    };
   } catch (error) {
     console.error("Error in painWorsenedByStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 
@@ -499,45 +716,88 @@ export const painWorsenedById = async (request, reply) => {
 // Pain Character Store
 export const painCharacterStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
-
     const { patient_id, pain_character_id } = request.body;
+
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    const patientIdNum = parseInt(patient_id);
+    if (Number.isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a number" }],
+      };
+    }
+
+    const normalizedCharacter = (() => {
+      if (pain_character_id === undefined || pain_character_id === null) {
+        return null;
+      }
+      if (Array.isArray(pain_character_id)) {
+        return pain_character_id.length > 0 ? String(pain_character_id[0]) : null;
+      }
+      return String(pain_character_id);
+    })();
 
     const existingCharacter = await db
       .select()
       .from(pain_character)
-      .where(eq(pain_character.patient_id, parseInt(patient_id)))
+      .where(eq(pain_character.patient_id, patientIdNum))
       .limit(1);
     const painCharacter = existingCharacter[0];
 
+    const now = new Date();
     let result;
     if (painCharacter) {
-      // Update existing record
       const updatedCharacter = await db
         .update(pain_character)
-        .set({ pain_character_id })
-        .where(eq(pain_character.patient_id, parseInt(patient_id)))
+        .set({
+          pain_character_id: normalizedCharacter,
+          updatedAt: now,
+        })
+        .where(eq(pain_character.patient_id, patientIdNum))
         .returning();
       result = updatedCharacter[0];
     } else {
-      // Create new record
       const newCharacter = await db
         .insert(pain_character)
         .values({
-          patient_id: parseInt(patient_id),
-          pain_character_id,
+          patient_id: patientIdNum,
+          pain_character_id: normalizedCharacter,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newCharacter[0];
     }
 
     reply.code(201);
-    return result;
+    return {
+      status: 201,
+      message: "Pain character saved successfully",
+      data: result,
+    };
   } catch (error) {
     console.error("Error in painCharacterStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 
@@ -571,45 +831,90 @@ export const painCharacterById = async (request, reply) => {
 // Pain Relieved By Store
 export const painRelievedByStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
-
     const { patient_id, pain_relieved_by_id } = request.body;
+
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    const patientIdNum = parseInt(patient_id);
+    if (Number.isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a number" }],
+      };
+    }
+
+    const normalizedRelievedBy = (() => {
+      if (pain_relieved_by_id === undefined || pain_relieved_by_id === null) {
+        return null;
+      }
+      if (Array.isArray(pain_relieved_by_id)) {
+        return pain_relieved_by_id.length > 0
+          ? String(pain_relieved_by_id[0])
+          : null;
+      }
+      return String(pain_relieved_by_id);
+    })();
 
     const existingRelievedBy = await db
       .select()
       .from(pain_relieved_by)
-      .where(eq(pain_relieved_by.patient_id, parseInt(patient_id)))
+      .where(eq(pain_relieved_by.patient_id, patientIdNum))
       .limit(1);
     const painRelievedBy = existingRelievedBy[0];
 
+    const now = new Date();
     let result;
     if (painRelievedBy) {
-      // Update existing record
       const updatedRelievedBy = await db
         .update(pain_relieved_by)
-        .set({ pain_relieved_by_id })
-        .where(eq(pain_relieved_by.patient_id, parseInt(patient_id)))
+        .set({
+          pain_relieved_by_id: normalizedRelievedBy,
+          updatedAt: now,
+        })
+        .where(eq(pain_relieved_by.patient_id, patientIdNum))
         .returning();
       result = updatedRelievedBy[0];
     } else {
-      // Create new record
       const newRelievedBy = await db
         .insert(pain_relieved_by)
         .values({
-          patient_id: parseInt(patient_id),
-          pain_relieved_by_id,
+          patient_id: patientIdNum,
+          pain_relieved_by_id: normalizedRelievedBy,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newRelievedBy[0];
     }
 
     reply.code(201);
-    return result;
+    return {
+      status: 201,
+      message: "Pain relieved-by saved successfully",
+      data: result,
+    };
   } catch (error) {
     console.error("Error in painRelievedByStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 
@@ -643,45 +948,93 @@ export const painRelievedById = async (request, reply) => {
 // Pain Effects On Function Store
 export const painEffectsOnFunctionStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
-
     const { patient_id, pain_effects_on_function_id } = request.body;
+
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    const patientIdNum = parseInt(patient_id);
+    if (Number.isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a number" }],
+      };
+    }
+
+    const normalizedEffect = (() => {
+      if (
+        pain_effects_on_function_id === undefined ||
+        pain_effects_on_function_id === null
+      ) {
+        return null;
+      }
+      if (Array.isArray(pain_effects_on_function_id)) {
+        return pain_effects_on_function_id.length > 0
+          ? String(pain_effects_on_function_id[0])
+          : null;
+      }
+      return String(pain_effects_on_function_id);
+    })();
 
     const existingEffectsOnFunction = await db
       .select()
       .from(pain_effects_on_function)
-      .where(eq(pain_effects_on_function.patient_id, parseInt(patient_id)))
+      .where(eq(pain_effects_on_function.patient_id, patientIdNum))
       .limit(1);
     const painEffectsOnFunction = existingEffectsOnFunction[0];
 
+    const now = new Date();
     let result;
     if (painEffectsOnFunction) {
-      // Update existing record
       const updatedEffectsOnFunction = await db
         .update(pain_effects_on_function)
-        .set({ pain_effects_on_function_id })
-        .where(eq(pain_effects_on_function.patient_id, parseInt(patient_id)))
+        .set({
+          pain_effects_on_function_id: normalizedEffect,
+          updatedAt: now,
+        })
+        .where(eq(pain_effects_on_function.patient_id, patientIdNum))
         .returning();
       result = updatedEffectsOnFunction[0];
     } else {
-      // Create new record
       const newEffectsOnFunction = await db
         .insert(pain_effects_on_function)
         .values({
-          patient_id: parseInt(patient_id),
-          pain_effects_on_function_id,
+          patient_id: patientIdNum,
+          pain_effects_on_function_id: normalizedEffect,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newEffectsOnFunction[0];
     }
 
     reply.code(201);
-    return result;
+    return {
+      status: 201,
+      message: "Pain effects on function saved successfully",
+      data: result,
+    };
   } catch (error) {
     console.error("Error in painEffectsOnFunctionStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 
@@ -715,45 +1068,90 @@ export const painEffectsOnFunctionById = async (request, reply) => {
 // Pain Breakthrough Store
 export const painBreakthroughStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
-
     const { patient_id, pain_breakthrough_id } = request.body;
+
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    const patientIdNum = parseInt(patient_id);
+    if (Number.isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a number" }],
+      };
+    }
+
+    const normalizedBreakthrough = (() => {
+      if (pain_breakthrough_id === undefined || pain_breakthrough_id === null) {
+        return null;
+      }
+      if (Array.isArray(pain_breakthrough_id)) {
+        return pain_breakthrough_id.length > 0
+          ? String(pain_breakthrough_id[0])
+          : null;
+      }
+      return String(pain_breakthrough_id);
+    })();
 
     const existingBreakthrough = await db
       .select()
       .from(pain_breakthrough)
-      .where(eq(pain_breakthrough.patient_id, parseInt(patient_id)))
+      .where(eq(pain_breakthrough.patient_id, patientIdNum))
       .limit(1);
     const painBreakthrough = existingBreakthrough[0];
 
+    const now = new Date();
     let result;
     if (painBreakthrough) {
-      // Update existing record
       const updatedBreakthrough = await db
         .update(pain_breakthrough)
-        .set({ pain_breakthrough_id })
-        .where(eq(pain_breakthrough.patient_id, parseInt(patient_id)))
+        .set({
+          pain_breakthrough_id: normalizedBreakthrough,
+          updatedAt: now,
+        })
+        .where(eq(pain_breakthrough.patient_id, patientIdNum))
         .returning();
       result = updatedBreakthrough[0];
     } else {
-      // Create new record
       const newBreakthrough = await db
         .insert(pain_breakthrough)
         .values({
-          patient_id: parseInt(patient_id),
-          pain_breakthrough_id,
+          patient_id: patientIdNum,
+          pain_breakthrough_id: normalizedBreakthrough,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newBreakthrough[0];
     }
 
     reply.code(201);
-    return result;
+    return {
+      status: 201,
+      message: "Pain breakthrough saved successfully",
+      data: result,
+    };
   } catch (error) {
     console.error("Error in painBreakthroughStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 
@@ -787,49 +1185,93 @@ export const painBreakthroughById = async (request, reply) => {
 // Type Of Pain Rating Scale Used Store
 export const typeOfPainRatingScaleUsedStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
-
     const { patient_id, type_of_pain_rating_scale_used_id } = request.body;
+
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    const patientIdNum = parseInt(patient_id);
+    if (Number.isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a number" }],
+      };
+    }
+
+    const normalizedType = (() => {
+      if (
+        type_of_pain_rating_scale_used_id === undefined ||
+        type_of_pain_rating_scale_used_id === null
+      ) {
+        return null;
+      }
+      if (Array.isArray(type_of_pain_rating_scale_used_id)) {
+        return type_of_pain_rating_scale_used_id.length > 0
+          ? String(type_of_pain_rating_scale_used_id[0])
+          : null;
+      }
+      return String(type_of_pain_rating_scale_used_id);
+    })();
 
     const existingType = await db
       .select()
       .from(type_of_pain_rating_scale_used)
-      .where(
-        eq(type_of_pain_rating_scale_used.patient_id, parseInt(patient_id))
-      )
+      .where(eq(type_of_pain_rating_scale_used.patient_id, patientIdNum))
       .limit(1);
     const typeOfPainRatingScaleUsed = existingType[0];
 
+    const now = new Date();
     let result;
     if (typeOfPainRatingScaleUsed) {
-      // Update existing record
       const updatedType = await db
         .update(type_of_pain_rating_scale_used)
-        .set({ type_of_pain_rating_scale_used_id })
-        .where(
-          eq(type_of_pain_rating_scale_used.patient_id, parseInt(patient_id))
-        )
+        .set({
+          type_of_pain_rating_scale_used_id: normalizedType,
+          updatedAt: now,
+        })
+        .where(eq(type_of_pain_rating_scale_used.patient_id, patientIdNum))
         .returning();
       result = updatedType[0];
     } else {
-      // Create new record
       const newType = await db
         .insert(type_of_pain_rating_scale_used)
         .values({
-          patient_id: parseInt(patient_id),
-          type_of_pain_rating_scale_used_id,
+          patient_id: patientIdNum,
+          type_of_pain_rating_scale_used_id: normalizedType,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newType[0];
     }
 
     reply.code(201);
-    return result;
+    return {
+      status: 201,
+      message: "Pain rating scale saved successfully",
+      data: result,
+    };
   } catch (error) {
     console.error("Error in typeOfPainRatingScaleUsedStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 
@@ -983,16 +1425,34 @@ export const painVitalSignsById = async (request, reply) => {
 // Pain Scales Tools Lab Data Reviews Store
 export const painScalesToolsLabDataReviewsStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
+    const { patient_id, id, createdAt, updatedAt, ...validatedData } = request.body;
 
-    const { patient_id, ...validatedData } = request.body;
+    // Validate patient_id is provided
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    // Validate patient_id is a valid number
+    const patientIdNum = parseInt(patient_id);
+    if (isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a valid number" }],
+      };
+    }
 
     const existingReviews = await db
       .select()
       .from(pain_scales_tools_lab_data_reviews)
       .where(
-        eq(pain_scales_tools_lab_data_reviews.patient_id, parseInt(patient_id))
+        eq(pain_scales_tools_lab_data_reviews.patient_id, patientIdNum)
       )
       .limit(1);
     const painScalesToolsLabDataReviews = existingReviews[0];
@@ -1000,28 +1460,38 @@ export const painScalesToolsLabDataReviewsStore = async (request, reply) => {
     let result;
     if (painScalesToolsLabDataReviews) {
       // Update existing record
+      // Remove any timestamp fields that might be strings
+      const updateData = { ...validatedData };
+      delete updateData.createdAt;
+      delete updateData.updatedAt;
+      
       const updatedReviews = await db
         .update(pain_scales_tools_lab_data_reviews)
         .set({
-          ...validatedData,
+          ...updateData,
           updatedAt: new Date(),
         })
         .where(
           eq(
             pain_scales_tools_lab_data_reviews.patient_id,
-            parseInt(patient_id)
+            patientIdNum
           )
         )
         .returning();
       result = updatedReviews[0];
     } else {
       // Create new record
+      // Remove any timestamp fields that might be strings
+      const insertData = { ...validatedData };
+      delete insertData.createdAt;
+      delete insertData.updatedAt;
+      
       const now = new Date();
       const newReviews = await db
         .insert(pain_scales_tools_lab_data_reviews)
         .values({
-          patient_id: parseInt(patient_id),
-          ...validatedData,
+          patient_id: patientIdNum,
+          ...insertData,
           createdAt: now,
           updatedAt: now,
         })
@@ -1030,11 +1500,24 @@ export const painScalesToolsLabDataReviewsStore = async (request, reply) => {
     }
 
     reply.code(201);
-    return result;
+    return {
+      status: 201,
+      message: "Pain scales tools lab data reviews saved successfully",
+      data: result,
+    };
   } catch (error) {
     console.error("Error in painScalesToolsLabDataReviewsStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 
@@ -1070,16 +1553,32 @@ export const painScalesToolsLabDataReviewsById = async (request, reply) => {
 // Pain Assessment In Dementia Scale Store
 export const painAssessmentInDementiaScaleStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
+    const { patient_id, id, createdAt, updatedAt, ...validatedData } = request.body;
 
-    const { patient_id, ...validatedData } = request.body;
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    const patientIdNum = parseInt(patient_id);
+    if (isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a valid number" }],
+      };
+    }
 
     const existingScale = await db
       .select()
       .from(pain_assessment_in_dementia_scale)
       .where(
-        eq(pain_assessment_in_dementia_scale.patient_id, parseInt(patient_id))
+        eq(pain_assessment_in_dementia_scale.patient_id, patientIdNum)
       )
       .limit(1);
     const painAssessmentInDementiaScale = existingScale[0];
@@ -1087,32 +1586,59 @@ export const painAssessmentInDementiaScaleStore = async (request, reply) => {
     let result;
     if (painAssessmentInDementiaScale) {
       // Update existing record
+      const updateData = { ...validatedData };
+      delete updateData.createdAt;
+      delete updateData.updatedAt;
+      
       const updatedScale = await db
         .update(pain_assessment_in_dementia_scale)
-        .set(validatedData)
+        .set({
+          ...updateData,
+          updatedAt: new Date(),
+        })
         .where(
-          eq(pain_assessment_in_dementia_scale.patient_id, parseInt(patient_id))
+          eq(pain_assessment_in_dementia_scale.patient_id, patientIdNum)
         )
         .returning();
       result = updatedScale[0];
     } else {
       // Create new record
+      const insertData = { ...validatedData };
+      delete insertData.createdAt;
+      delete insertData.updatedAt;
+      
+      const now = new Date();
       const newScale = await db
         .insert(pain_assessment_in_dementia_scale)
         .values({
-          patient_id: parseInt(patient_id),
-          ...validatedData,
+          patient_id: patientIdNum,
+          ...insertData,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newScale[0];
     }
 
     reply.code(201);
-    return result;
+    return {
+      status: 201,
+      message: "Pain assessment in dementia scale saved successfully",
+      data: result,
+    };
   } catch (error) {
     console.error("Error in painAssessmentInDementiaScaleStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 
@@ -1147,45 +1673,88 @@ export const painAssessmentInDementiaScaleById = async (request, reply) => {
 // Flacc Behavioral Pain Store
 export const flaccBehavioralPainStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
+    const { patient_id, id, createdAt, updatedAt, ...validatedData } = request.body;
 
-    const { patient_id, ...validatedData } = request.body;
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    const patientIdNum = parseInt(patient_id);
+    if (isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a valid number" }],
+      };
+    }
 
     const existingFlacc = await db
       .select()
       .from(flacc_behavioral_pain)
-      .where(eq(flacc_behavioral_pain.patient_id, parseInt(patient_id)))
+      .where(eq(flacc_behavioral_pain.patient_id, patientIdNum))
       .limit(1);
     const flaccBehavioralPain = existingFlacc[0];
 
     let result;
     if (flaccBehavioralPain) {
       // Update existing record
+      const updateData = { ...validatedData };
+      delete updateData.createdAt;
+      delete updateData.updatedAt;
+      
       const updatedFlacc = await db
         .update(flacc_behavioral_pain)
-        .set(validatedData)
-        .where(eq(flacc_behavioral_pain.patient_id, parseInt(patient_id)))
+        .set({
+          ...updateData,
+          updatedAt: new Date(),
+        })
+        .where(eq(flacc_behavioral_pain.patient_id, patientIdNum))
         .returning();
       result = updatedFlacc[0];
     } else {
       // Create new record
+      const insertData = { ...validatedData };
+      delete insertData.createdAt;
+      delete insertData.updatedAt;
+      
+      const now = new Date();
       const newFlacc = await db
         .insert(flacc_behavioral_pain)
         .values({
-          patient_id: parseInt(patient_id),
-          ...validatedData,
+          patient_id: patientIdNum,
+          ...insertData,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newFlacc[0];
     }
 
     reply.code(201);
-    return result;
+    return {
+      status: 201,
+      message: "FLACC behavioral pain saved successfully",
+      data: result,
+    };
   } catch (error) {
     console.error("Error in flaccBehavioralPainStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 
@@ -1219,45 +1788,88 @@ export const flaccBehavioralPainById = async (request, reply) => {
 // Pain Screening Store
 export const painScreeningStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
+    const { patient_id, id, createdAt, updatedAt, ...validatedData } = request.body;
 
-    const { patient_id, ...validatedData } = request.body;
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    const patientIdNum = parseInt(patient_id);
+    if (isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a valid number" }],
+      };
+    }
 
     const existingScreening = await db
       .select()
       .from(pain_screening)
-      .where(eq(pain_screening.patient_id, parseInt(patient_id)))
+      .where(eq(pain_screening.patient_id, patientIdNum))
       .limit(1);
     const painScreening = existingScreening[0];
 
     let result;
     if (painScreening) {
       // Update existing record
+      const updateData = { ...validatedData };
+      delete updateData.createdAt;
+      delete updateData.updatedAt;
+      
       const updatedScreening = await db
         .update(pain_screening)
-        .set(validatedData)
-        .where(eq(pain_screening.patient_id, parseInt(patient_id)))
+        .set({
+          ...updateData,
+          updatedAt: new Date(),
+        })
+        .where(eq(pain_screening.patient_id, patientIdNum))
         .returning();
       result = updatedScreening[0];
     } else {
       // Create new record
+      const insertData = { ...validatedData };
+      delete insertData.createdAt;
+      delete insertData.updatedAt;
+      
+      const now = new Date();
       const newScreening = await db
         .insert(pain_screening)
         .values({
-          patient_id: parseInt(patient_id),
-          ...validatedData,
+          patient_id: patientIdNum,
+          ...insertData,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newScreening[0];
     }
 
     reply.code(201);
-    return result;
+    return {
+      status: 201,
+      message: "Pain screening saved successfully",
+      data: result,
+    };
   } catch (error) {
     console.error("Error in painScreeningStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 
@@ -1289,16 +1901,32 @@ export const painScreeningById = async (request, reply) => {
 // Pain Summary Interventions Goals Store
 export const painSummaryInterventionsGoalsStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
+    const { patient_id, id, createdAt, updatedAt, ...validatedData } = request.body;
 
-    const { patient_id, ...validatedData } = request.body;
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    const patientIdNum = parseInt(patient_id);
+    if (isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a valid number" }],
+      };
+    }
 
     const existingGoals = await db
       .select()
       .from(pain_summary_interventions_goals)
       .where(
-        eq(pain_summary_interventions_goals.patient_id, parseInt(patient_id))
+        eq(pain_summary_interventions_goals.patient_id, patientIdNum)
       )
       .limit(1);
     const painSummaryInterventionsGoals = existingGoals[0];
@@ -1306,32 +1934,59 @@ export const painSummaryInterventionsGoalsStore = async (request, reply) => {
     let result;
     if (painSummaryInterventionsGoals) {
       // Update existing record
+      const updateData = { ...validatedData };
+      delete updateData.createdAt;
+      delete updateData.updatedAt;
+      
       const updatedGoals = await db
         .update(pain_summary_interventions_goals)
-        .set(validatedData)
+        .set({
+          ...updateData,
+          updatedAt: new Date(),
+        })
         .where(
-          eq(pain_summary_interventions_goals.patient_id, parseInt(patient_id))
+          eq(pain_summary_interventions_goals.patient_id, patientIdNum)
         )
         .returning();
       result = updatedGoals[0];
     } else {
       // Create new record
+      const insertData = { ...validatedData };
+      delete insertData.createdAt;
+      delete insertData.updatedAt;
+      
+      const now = new Date();
       const newGoals = await db
         .insert(pain_summary_interventions_goals)
         .values({
-          patient_id: parseInt(patient_id),
-          ...validatedData,
+          patient_id: patientIdNum,
+          ...insertData,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newGoals[0];
     }
 
     reply.code(201);
-    return result;
+    return {
+      status: 201,
+      message: "Pain summary interventions goals saved successfully",
+      data: result,
+    };
   } catch (error) {
     console.error("Error in painSummaryInterventionsGoalsStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 
@@ -1366,47 +2021,90 @@ export const painSummaryInterventionsGoalsById = async (request, reply) => {
 // Comprehensive Pain Assessment Store
 export const comprehensivePainAssessmentStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
+    const { patient_id, id, createdAt, updatedAt, ...validatedData } = request.body;
 
-    const { patient_id, ...validatedData } = request.body;
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    const patientIdNum = parseInt(patient_id);
+    if (isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a valid number" }],
+      };
+    }
 
     const existingAssessment = await db
       .select()
       .from(comprehensive_pain_assessment)
-      .where(eq(comprehensive_pain_assessment.patient_id, parseInt(patient_id)))
+      .where(eq(comprehensive_pain_assessment.patient_id, patientIdNum))
       .limit(1);
     const comprehensivePainAssessment = existingAssessment[0];
 
     let result;
     if (comprehensivePainAssessment) {
       // Update existing record
+      const updateData = { ...validatedData };
+      delete updateData.createdAt;
+      delete updateData.updatedAt;
+      
       const updatedAssessment = await db
         .update(comprehensive_pain_assessment)
-        .set(validatedData)
+        .set({
+          ...updateData,
+          updatedAt: new Date(),
+        })
         .where(
-          eq(comprehensive_pain_assessment.patient_id, parseInt(patient_id))
+          eq(comprehensive_pain_assessment.patient_id, patientIdNum)
         )
         .returning();
       result = updatedAssessment[0];
     } else {
       // Create new record
+      const insertData = { ...validatedData };
+      delete insertData.createdAt;
+      delete insertData.updatedAt;
+      
+      const now = new Date();
       const newAssessment = await db
         .insert(comprehensive_pain_assessment)
         .values({
-          patient_id: parseInt(patient_id),
-          ...validatedData,
+          patient_id: patientIdNum,
+          ...insertData,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newAssessment[0];
     }
 
     reply.code(201);
-    return result;
+    return {
+      status: 201,
+      message: "Comprehensive pain assessment saved successfully",
+      data: result,
+    };
   } catch (error) {
     console.error("Error in comprehensivePainAssessmentStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 
@@ -1440,45 +2138,88 @@ export const comprehensivePainAssessmentById = async (request, reply) => {
 // Pain Active Problem Store
 export const painActiveProblemStore = async (request, reply) => {
   try {
-    // Note: Validation should be done in route schema
-    // Validation handled in route schema
+    const { patient_id, id, createdAt, updatedAt, ...validatedData } = request.body;
 
-    const { patient_id, ...validatedData } = request.body;
+    if (!patient_id) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID is required" }],
+      };
+    }
+
+    const patientIdNum = parseInt(patient_id);
+    if (isNaN(patientIdNum)) {
+      reply.code(400);
+      return {
+        status: 400,
+        message: "Validation failed",
+        errors: [{ field: "patient_id", message: "Patient ID must be a valid number" }],
+      };
+    }
 
     const existingProblem = await db
       .select()
       .from(pain_active_problem)
-      .where(eq(pain_active_problem.patient_id, parseInt(patient_id)))
+      .where(eq(pain_active_problem.patient_id, patientIdNum))
       .limit(1);
     const painActiveProblem = existingProblem[0];
 
     let result;
     if (painActiveProblem) {
       // Update existing record
+      const updateData = { ...validatedData };
+      delete updateData.createdAt;
+      delete updateData.updatedAt;
+      
       const updatedProblem = await db
         .update(pain_active_problem)
-        .set(validatedData)
-        .where(eq(pain_active_problem.patient_id, parseInt(patient_id)))
+        .set({
+          ...updateData,
+          updatedAt: new Date(),
+        })
+        .where(eq(pain_active_problem.patient_id, patientIdNum))
         .returning();
       result = updatedProblem[0];
     } else {
       // Create new record
+      const insertData = { ...validatedData };
+      delete insertData.createdAt;
+      delete insertData.updatedAt;
+      
+      const now = new Date();
       const newProblem = await db
         .insert(pain_active_problem)
         .values({
-          patient_id: parseInt(patient_id),
-          ...validatedData,
+          patient_id: patientIdNum,
+          ...insertData,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
       result = newProblem[0];
     }
 
     reply.code(201);
-    return result;
+    return {
+      status: 201,
+      message: "Pain active problem saved successfully",
+      data: result,
+    };
   } catch (error) {
     console.error("Error in painActiveProblemStore:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      body: request.body,
+    });
     reply.code(500);
-    return { message: "Server error" };
+    return {
+      status: 500,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 

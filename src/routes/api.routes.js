@@ -9,6 +9,7 @@ import integumentaryAssessmentRoutes from "./patient/IntegumentaryAssessment.rou
 import nursingClinicalNoteRoutes from "./patient/NursingClinicalNote.routes.js";
 import nutritionRoutes from "./patient/Nutrition.routes.js";
 import painRoutes from "./patient/Pain.routes.js";
+import painTypeRoutes from "./pain-type.routes.js";
 import patientRoutes from "./patient/Patient.routes.js";
 import prognosisRoutes from "./patient/Prognosis.routes.js";
 import selectRoutes from "./patient/Select.routes.js";
@@ -78,6 +79,12 @@ async function apiRoutes(fastify, options) {
   await fastify.register(nursingClinicalNoteRoutes, { prefix: "/nursing-clinical-notes" });
   await fastify.register(nutritionRoutes, { prefix: "/nutrition-assessment" });
   await fastify.register(painRoutes, { prefix: "/pain" });
+  
+  // Register pain-type routes at root level for backward compatibility
+  // Frontend calls /api/pain-type/... but routes are at /api/pain/pain-type/...
+  // This creates aliases so both paths work
+  await fastify.register(painTypeRoutes);
+  
   await fastify.register(patientRoutes, { prefix: "/patient" });
   await fastify.register(prognosisRoutes, { prefix: "/prognosis" });
   await fastify.register(selectRoutes, { prefix: "/select" });
