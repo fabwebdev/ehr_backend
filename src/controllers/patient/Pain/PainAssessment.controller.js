@@ -79,6 +79,27 @@ export const painLevelSeveritystore = async (request, reply) => {
       primary_pain_site,
     } = request.body;
 
+    // Normalize values: convert empty strings to null for integer fields
+    const normalizeInteger = (value) => {
+      if (value === undefined || value === null || value === '') {
+        return null;
+      }
+      const parsed = parseInt(value);
+      return isNaN(parsed) ? null : parsed;
+    };
+
+    const normalizeString = (value) => {
+      if (value === undefined || value === null || value === '') {
+        return null;
+      }
+      return String(value);
+    };
+
+    const normalizedPainLevelNow = normalizeInteger(pain_level_now);
+    const normalizedAcceptableLevel = normalizeInteger(acceptable_level_of_pain);
+    const normalizedWorstPainLevel = normalizeInteger(worst_pain_level);
+    const normalizedPrimaryPainSite = normalizeString(primary_pain_site);
+
     // Check if patient already has a pain assessment
     const existingAssessment = await db
       .select()
@@ -95,10 +116,10 @@ export const painLevelSeveritystore = async (request, reply) => {
       const updatedAssessment = await db
         .update(pain_assessments)
         .set({
-          pain_level_now,
-          acceptable_level_of_pain,
-          worst_pain_level,
-          primary_pain_site,
+          pain_level_now: normalizedPainLevelNow,
+          acceptable_level_of_pain: normalizedAcceptableLevel,
+          worst_pain_level: normalizedWorstPainLevel,
+          primary_pain_site: normalizedPrimaryPainSite,
           updatedAt: now,
         })
         .where(eq(pain_assessments.patient_id, parseInt(patient_id)))
@@ -111,10 +132,10 @@ export const painLevelSeveritystore = async (request, reply) => {
         .insert(pain_assessments)
         .values({
           patient_id: parseInt(patient_id),
-          pain_level_now,
-          acceptable_level_of_pain,
-          worst_pain_level,
-          primary_pain_site,
+          pain_level_now: normalizedPainLevelNow,
+          acceptable_level_of_pain: normalizedAcceptableLevel,
+          worst_pain_level: normalizedWorstPainLevel,
+          primary_pain_site: normalizedPrimaryPainSite,
           createdAt: now,
           updatedAt: now,
         })

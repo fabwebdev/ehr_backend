@@ -14,6 +14,24 @@ import {
 } from "../../db/schemas/index.js";
 import { eq, and } from "drizzle-orm";
 
+// Helper function to add timestamps to data for insert operations
+function addTimestamps(data) {
+  const now = new Date();
+  return {
+    ...data,
+    createdAt: now,
+    updatedAt: now
+  };
+}
+
+// Helper function to add updatedAt timestamp for update operations
+function addUpdatedAt(data) {
+  return {
+    ...data,
+    updatedAt: new Date()
+  };
+}
+
 // Show nursing clinical note by ID
 export const show = async (request, reply) => {
     try {
@@ -71,6 +89,51 @@ export const update = async (request, reply) => {
         console.error("Error in update:", error);
         reply.code(500);
             return { message: "Server error" };
+    }
+};
+
+// Store (create or update) nursing clinical note
+export const store = async (request, reply) => {
+    try {
+        const { id } = request.params;
+        const noteData = request.body;
+
+        // Check if note exists
+        const existingNoteResult = await db.select().from(nursing_clinical_notes)
+            .where(eq(nursing_clinical_notes.id, parseInt(id)))
+            .limit(1);
+        const existingNote = existingNoteResult[0];
+
+        let result;
+        if (existingNote) {
+            // Update existing note
+            const updatedNoteResult = await db.update(nursing_clinical_notes)
+                .set(noteData)
+                .where(eq(nursing_clinical_notes.id, parseInt(id)))
+                .returning();
+            result = updatedNoteResult[0];
+            reply.code(200);
+            return {
+                message: "Nursing clinical note updated successfully",
+                data: result,
+            };
+        } else {
+            // Create new note with the provided ID
+            noteData.id = parseInt(id);
+            const newNoteResult = await db.insert(nursing_clinical_notes)
+                .values(noteData)
+                .returning();
+            result = newNoteResult[0];
+            reply.code(201);
+            return {
+                message: "Nursing clinical note created successfully",
+                data: result,
+            };
+        }
+    } catch (error) {
+        console.error("Error in store:", error);
+        reply.code(500);
+        return { message: "Server error" };
     }
 };
 
@@ -144,14 +207,14 @@ export const autoSaveVitalSigns = async (request, reply) => {
         if (existingVitalSigns.length > 0) {
             // Update existing record
             const updatedVitalSigns = await db.update(vital_signs)
-                .set(validatedData)
+                .set(addUpdatedAt(validatedData))
                 .where(eq(vital_signs.note_id, parseInt(noteId)))
                 .returning();
             vitalSign = updatedVitalSigns[0];
         } else {
             // Create new record
             const newVitalSigns = await db.insert(vital_signs)
-                .values(validatedData)
+                .values(addTimestamps(validatedData))
                 .returning();
             vitalSign = newVitalSigns[0];
         }
@@ -227,14 +290,14 @@ export const autoSaveScaleToolLabData = async (request, reply) => {
         if (existingData.length > 0) {
             // Update existing record
             const updatedData = await db.update(scale_tool_lab_data)
-                .set(validatedData)
+                .set(addUpdatedAt(validatedData))
                 .where(eq(scale_tool_lab_data.note_id, parseInt(noteId)))
                 .returning();
             scaleToolLabData = updatedData[0];
         } else {
             // Create new record
             const newData = await db.insert(scale_tool_lab_data)
-                .values(validatedData)
+                .values(addTimestamps(validatedData))
                 .returning();
             scaleToolLabData = newData[0];
         }
@@ -285,14 +348,14 @@ export const autoSavePainData = async (request, reply) => {
         if (existingData.length > 0) {
             // Update existing record
             const updatedData = await db.update(pain_data)
-                .set(validatedData)
+                .set(addUpdatedAt(validatedData))
                 .where(eq(pain_data.note_id, parseInt(noteId)))
                 .returning();
             painData = updatedData[0];
         } else {
             // Create new record
             const newData = await db.insert(pain_data)
-                .values(validatedData)
+                .values(addTimestamps(validatedData))
                 .returning();
             painData = newData[0];
         }
@@ -343,14 +406,14 @@ export const autoSavePainadData = async (request, reply) => {
         if (existingData.length > 0) {
             // Update existing record
             const updatedData = await db.update(painad_data)
-                .set(validatedData)
+                .set(addUpdatedAt(validatedData))
                 .where(eq(painad_data.note_id, parseInt(noteId)))
                 .returning();
             painadData = updatedData[0];
         } else {
             // Create new record
             const newData = await db.insert(painad_data)
-                .values(validatedData)
+                .values(addTimestamps(validatedData))
                 .returning();
             painadData = newData[0];
         }
@@ -401,14 +464,14 @@ export const autoSaveFlaccData = async (request, reply) => {
         if (existingData.length > 0) {
             // Update existing record
             const updatedData = await db.update(flacc_data)
-                .set(validatedData)
+                .set(addUpdatedAt(validatedData))
                 .where(eq(flacc_data.note_id, parseInt(noteId)))
                 .returning();
             flaccData = updatedData[0];
         } else {
             // Create new record
             const newData = await db.insert(flacc_data)
-                .values(validatedData)
+                .values(addTimestamps(validatedData))
                 .returning();
             flaccData = newData[0];
         }
@@ -459,14 +522,14 @@ export const autoSaveCardiovascularData = async (request, reply) => {
         if (existingData.length > 0) {
             // Update existing record
             const updatedData = await db.update(cardiovascular_data)
-                .set(validatedData)
+                .set(addUpdatedAt(validatedData))
                 .where(eq(cardiovascular_data.note_id, parseInt(noteId)))
                 .returning();
             cardiovascularData = updatedData[0];
         } else {
             // Create new record
             const newData = await db.insert(cardiovascular_data)
-                .values(validatedData)
+                .values(addTimestamps(validatedData))
                 .returning();
             cardiovascularData = newData[0];
         }
@@ -517,14 +580,14 @@ export const autoSaveRespiratoryData = async (request, reply) => {
         if (existingData.length > 0) {
             // Update existing record
             const updatedData = await db.update(respiratory_data)
-                .set(validatedData)
+                .set(addUpdatedAt(validatedData))
                 .where(eq(respiratory_data.note_id, parseInt(noteId)))
                 .returning();
             respiratoryData = updatedData[0];
         } else {
             // Create new record
             const newData = await db.insert(respiratory_data)
-                .values(validatedData)
+                .values(addTimestamps(validatedData))
                 .returning();
             respiratoryData = newData[0];
         }
@@ -575,14 +638,14 @@ export const autoSaveGenitourinaryData = async (request, reply) => {
         if (existingData.length > 0) {
             // Update existing record
             const updatedData = await db.update(genitourinary_data)
-                .set(validatedData)
+                .set(addUpdatedAt(validatedData))
                 .where(eq(genitourinary_data.note_id, parseInt(noteId)))
                 .returning();
             genitourinaryData = updatedData[0];
         } else {
             // Create new record
             const newData = await db.insert(genitourinary_data)
-                .values(validatedData)
+                .values(addTimestamps(validatedData))
                 .returning();
             genitourinaryData = newData[0];
         }
@@ -633,14 +696,14 @@ export const autoSaveGastrointestinalData = async (request, reply) => {
         if (existingData.length > 0) {
             // Update existing record
             const updatedData = await db.update(gastrointestinal_data)
-                .set(validatedData)
+                .set(addUpdatedAt(validatedData))
                 .where(eq(gastrointestinal_data.note_id, parseInt(noteId)))
                 .returning();
             gastrointestinalData = updatedData[0];
         } else {
             // Create new record
             const newData = await db.insert(gastrointestinal_data)
-                .values(validatedData)
+                .values(addTimestamps(validatedData))
                 .returning();
             gastrointestinalData = newData[0];
         }

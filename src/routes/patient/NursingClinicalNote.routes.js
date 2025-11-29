@@ -3,7 +3,32 @@ import authenticate from "../../middleware/betterAuth.middleware.js";
 
 // Fastify plugin for nursing clinical note routes
 async function nursingClinicalNoteRoutes(fastify, options) {
-  // Nursing Clinical Note Routes
+  // Nursing Clinical Note Routes (clean path)
+  fastify.get(
+    "/:id",
+    {
+      preHandler: [authenticate],
+    },
+    NursingClinicalNoteController.show
+  );
+
+  fastify.put(
+    "/:id",
+    {
+      preHandler: [authenticate],
+    },
+    NursingClinicalNoteController.update
+  );
+
+  fastify.post(
+    "/:id",
+    {
+      preHandler: [authenticate],
+    },
+    NursingClinicalNoteController.store
+  );
+
+  // Backward compatibility: support double path for existing frontend
   fastify.get(
     "/nursing-clinical-notes/:id",
     {
@@ -11,13 +36,21 @@ async function nursingClinicalNoteRoutes(fastify, options) {
     },
     NursingClinicalNoteController.show
   );
-  
+
   fastify.put(
     "/nursing-clinical-notes/:id",
     {
       preHandler: [authenticate],
     },
     NursingClinicalNoteController.update
+  );
+
+  fastify.post(
+    "/nursing-clinical-notes/:id",
+    {
+      preHandler: [authenticate],
+    },
+    NursingClinicalNoteController.store
   );
 
   // Vital signs routes
@@ -28,7 +61,7 @@ async function nursingClinicalNoteRoutes(fastify, options) {
     },
     NursingClinicalNoteController.getVitalSigns
   );
-  
+
   fastify.post(
     "/vital_signs/:noteId",
     {
@@ -45,7 +78,7 @@ async function nursingClinicalNoteRoutes(fastify, options) {
     },
     NursingClinicalNoteController.indexScaleToolLabData
   );
-  
+
   fastify.post(
     "/scales_tools_lab_data/:noteId",
     {
@@ -62,7 +95,7 @@ async function nursingClinicalNoteRoutes(fastify, options) {
     },
     NursingClinicalNoteController.indexPainData
   );
-  
+
   fastify.post(
     "/pain_data/:noteId",
     {
@@ -79,7 +112,7 @@ async function nursingClinicalNoteRoutes(fastify, options) {
     },
     NursingClinicalNoteController.indexPainadData
   );
-  
+
   fastify.post(
     "/painad_data/:noteId",
     {
@@ -96,7 +129,7 @@ async function nursingClinicalNoteRoutes(fastify, options) {
     },
     NursingClinicalNoteController.indexFlaccData
   );
-  
+
   fastify.post(
     "/flacc_data/:noteId",
     {
@@ -113,7 +146,7 @@ async function nursingClinicalNoteRoutes(fastify, options) {
     },
     NursingClinicalNoteController.indexCardiovascularData
   );
-  
+
   fastify.post(
     "/cardiovascular_data/:noteId",
     {
@@ -130,7 +163,7 @@ async function nursingClinicalNoteRoutes(fastify, options) {
     },
     NursingClinicalNoteController.indexRespiratoryData
   );
-  
+
   fastify.post(
     "/respiratory_data/:noteId",
     {
@@ -147,7 +180,7 @@ async function nursingClinicalNoteRoutes(fastify, options) {
     },
     NursingClinicalNoteController.indexGenitourinaryData
   );
-  
+
   fastify.post(
     "/genitourinary_data/:noteId",
     {
@@ -164,7 +197,7 @@ async function nursingClinicalNoteRoutes(fastify, options) {
     },
     NursingClinicalNoteController.indexGastrointestinalData
   );
-  
+
   fastify.post(
     "/gastrointestinal_data/:noteId",
     {
