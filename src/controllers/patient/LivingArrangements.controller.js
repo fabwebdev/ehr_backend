@@ -55,41 +55,6 @@ class LivingArrangementsController {
                 };
             }
 
-            if (!primary_caregiver) {
-                reply.code(400);
-            return {
-                    message: "Primary caregiver is required",
-                };
-            }
-
-            if (!primary_location_of_patient) {
-                reply.code(400);
-            return {
-                    message: "Primary location of patient is required",
-                };
-            }
-
-            if (!caregiver_availability) {
-                reply.code(400);
-            return {
-                    message: "Caregiver availability is required",
-                };
-            }
-
-            if (patient_able === undefined || patient_able === null) {
-                reply.code(400);
-            return {
-                    message: "Patient able is required",
-                };
-            }
-
-            if (!need_hospice_service) {
-                reply.code(400);
-            return {
-                    message: "Need hospice service is required",
-                };
-            }
-
             // Check if living arrangements already exists for this patient
             const existingArrangements = await db.select().from(living_arrangements).where(eq(living_arrangements.patient_id, patient_id)).limit(1);
             const existingArrangement = existingArrangements[0];
@@ -100,22 +65,26 @@ class LivingArrangementsController {
                 : need_hospice_service;
 
             // Prepare data for update or create
+            const now = new Date();
             const livingArrangementsData = {
                 patient_id: patient_id,
-                primary_caregiver: primary_caregiver,
-                primary_location_of_patient: primary_location_of_patient,
-                caregiver_availability: caregiver_availability,
-                patient_able: patient_able,
-                need_hospice_service: needHospiceServiceString,
+                primary_caregiver: primary_caregiver || null,
+                primary_location_of_patient: primary_location_of_patient || null,
+                caregiver_availability: caregiver_availability || null,
+                patient_able: patient_able !== undefined ? patient_able : null,
+                need_hospice_service: needHospiceServiceString || null,
             };
 
             let result;
             if (existingArrangement) {
                 // Update existing living arrangements
+                livingArrangementsData.updatedAt = now;
                 result = await db.update(living_arrangements).set(livingArrangementsData).where(eq(living_arrangements.patient_id, patient_id)).returning();
                 result = result[0];
             } else {
                 // Create new living arrangements
+                livingArrangementsData.createdAt = now;
+                livingArrangementsData.updatedAt = now;
                 result = await db.insert(living_arrangements).values(livingArrangementsData).returning();
                 result = result[0];
             }

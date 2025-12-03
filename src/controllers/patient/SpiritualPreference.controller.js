@@ -38,6 +38,7 @@ class SpiritualPreferenceController {
             const existingPreference = existingPreferences[0];
 
             // Prepare data for update or create
+            const now = new Date();
             const spiritualPreferenceData = {
                 patient_id: patient_id,
                 patient_spiritual: patient_spiritual || null,
@@ -49,10 +50,13 @@ class SpiritualPreferenceController {
             let result;
             if (existingPreference) {
                 // Update existing spiritual preference
+                spiritualPreferenceData.updatedAt = now;
                 result = await db.update(spiritual_preference).set(spiritualPreferenceData).where(eq(spiritual_preference.patient_id, patient_id)).returning();
                 result = result[0];
             } else {
                 // Create new spiritual preference
+                spiritualPreferenceData.createdAt = now;
+                spiritualPreferenceData.updatedAt = now;
                 result = await db.insert(spiritual_preference).values(spiritualPreferenceData).returning();
                 result = result[0];
             }

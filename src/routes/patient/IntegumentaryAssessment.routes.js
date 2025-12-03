@@ -31,7 +31,18 @@ async function integumentaryAssessmentRoutes(fastify, options) {
   fastify.get(
     "/integumentary-assessment/:id",
     {
-      preHandler: [verifyToken],
+      preHandler: [
+        async (request, reply) => {
+          console.log("🔍 Integumentary assessment show route hit:", {
+            url: request.url,
+            method: request.method,
+            params: request.params,
+            id: request.params.id,
+            fullUrl: request.url
+          });
+        },
+        verifyToken
+      ],
     },
     IntegumentaryAssessmentController.show
   );

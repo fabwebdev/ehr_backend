@@ -31,7 +31,18 @@ async function hematologicalAssessmentRoutes(fastify, options) {
   fastify.get(
     "/hematological-assessment/:id",
     {
-      preHandler: [verifyToken],
+      preHandler: [
+        async (request, reply) => {
+          console.log("🔍 Hematological assessment show route hit:", {
+            url: request.url,
+            method: request.method,
+            params: request.params,
+            id: request.params.id,
+            fullUrl: request.url
+          });
+        },
+        verifyToken
+      ],
     },
     HematologicalAssessmentController.show
   );
