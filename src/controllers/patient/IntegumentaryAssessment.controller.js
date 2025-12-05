@@ -108,26 +108,37 @@ class IntegumentaryAssessmentController {
     }
 
     // Show integumentary assessment for a specific patient
+    // Returns empty data if no assessment exists (to allow frontend to render form)
     async show(request, reply) {
         try {
             const { id } = request.params;
+            console.log("🔍 IntegumentaryAssessmentController.show called with patient_id:", id);
 
             const integumentaryAssessments = await db.select().from(integumentary_assessment)
                 .where(eq(integumentary_assessment.patient_id, id))
                 .limit(1);
+            
+            console.log("📊 Found assessments:", integumentaryAssessments.length);
             const integumentaryAssessment = integumentaryAssessments[0];
 
             if (!integumentaryAssessment) {
-                reply.code(404);
-            return {
-                    error: "No integumentary assessment found for this patient",
+                console.log("ℹ️ No integumentary assessment found for patient_id:", id, "- returning empty data");
+                // Return 200 with empty data instead of 404, so frontend can render form
+                reply.code(200);
+                return {
+                    id: null,
+                    patient_id: parseInt(id),
+                    integumentary_ids: "",
+                    createdAt: null,
+                    updatedAt: null,
                 };
             }
 
+            console.log("✅ Found integumentary assessment:", integumentaryAssessment.id);
             reply.code(200);
             return integumentaryAssessment;
         } catch (error) {
-            console.error("Error fetching integumentary assessment:", error);
+            console.error("❌ Error fetching integumentary assessment:", error);
             reply.code(500);
             return {
                 message: "Internal server error",

@@ -66,10 +66,15 @@ class EndocrineAssessmentController {
                 : endocrine_ids;
 
             let result;
+            const now = new Date();
+            
             if (existingAssessment) {
                 // Update existing endocrine assessment
                 result = await db.update(endocrine_assessment)
-                    .set({ endocrine_ids: endocrineIdsString })
+                    .set({ 
+                        endocrine_ids: endocrineIdsString,
+                        updatedAt: now
+                    })
                     .where(eq(endocrine_assessment.patient_id, patient_id))
                     .returning();
                 result = result[0];
@@ -78,6 +83,8 @@ class EndocrineAssessmentController {
                 result = await db.insert(endocrine_assessment).values({
                     patient_id: patient_id,
                     endocrine_ids: endocrineIdsString,
+                    createdAt: now,
+                    updatedAt: now,
                 }).returning();
                 result = result[0];
             }
@@ -98,6 +105,7 @@ class EndocrineAssessmentController {
     }
 
     // Show endocrine assessment for a specific patient
+    // Returns empty data if no assessment exists (to allow frontend to render form)
     async show(request, reply) {
         try {
             const { id } = request.params;
@@ -106,9 +114,14 @@ class EndocrineAssessmentController {
             const endocrineAssessment = endocrineAssessments[0];
 
             if (!endocrineAssessment) {
-                reply.code(404);
-            return {
-                    error: "No endocrine assessment found for this patient",
+                // Return 200 with empty data instead of 404, so frontend can render form
+                reply.code(200);
+                return {
+                    id: null,
+                    patient_id: parseInt(id),
+                    endocrine_ids: "",
+                    createdAt: null,
+                    updatedAt: null,
                 };
             }
 

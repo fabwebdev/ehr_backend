@@ -104,6 +104,7 @@ class HematologicalAssessmentController {
     }
 
     // Show hematological assessment for a specific patient
+    // Returns empty data if no assessment exists (to allow frontend to render form)
     async show(request, reply) {
         try {
             const { id } = request.params;
@@ -112,9 +113,14 @@ class HematologicalAssessmentController {
             const hematologicalAssessment = hematologicalAssessments[0];
 
             if (!hematologicalAssessment) {
-                reply.code(404);
-            return {
-                    error: "No hematological assessment found for this patient",
+                // Return 200 with empty data instead of 404, so frontend can render form
+                reply.code(200);
+                return {
+                    id: null,
+                    patient_id: parseInt(id),
+                    hematological_ids: "",
+                    createdAt: null,
+                    updatedAt: null,
                 };
             }
 

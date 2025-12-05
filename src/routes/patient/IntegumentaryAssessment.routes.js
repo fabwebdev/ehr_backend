@@ -4,13 +4,6 @@ import { verifyToken } from "../../middleware/betterAuth.middleware.js";
 // Fastify plugin for integumentary assessment routes
 async function integumentaryAssessmentRoutes(fastify, options) {
   // Integumentary Assessment Routes
-  fastify.get(
-    "/integumentary-assessment",
-    {
-      preHandler: [verifyToken],
-    },
-    IntegumentaryAssessmentController.index
-  );
   
   fastify.get(
     "/integumentary-list",
@@ -28,6 +21,7 @@ async function integumentaryAssessmentRoutes(fastify, options) {
     IntegumentaryAssessmentController.store
   );
   
+  // Parameterized route for getting assessment by patient ID
   fastify.get(
     "/integumentary-assessment/:id",
     {
@@ -45,6 +39,15 @@ async function integumentaryAssessmentRoutes(fastify, options) {
       ],
     },
     IntegumentaryAssessmentController.show
+  );
+  
+  // Get all integumentary assessments (exact match route)
+  fastify.get(
+    "/integumentary-assessment",
+    {
+      preHandler: [verifyToken],
+    },
+    IntegumentaryAssessmentController.index
   );
 }
 

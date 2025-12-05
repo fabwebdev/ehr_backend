@@ -99,21 +99,32 @@ class NutritionController {
                 ? nutrition_template_ids.join(",")
                 : nutrition_template_ids;
 
-            // Prepare data for update or create
-            const nutritionAssessmentData = {
-                patient_id: patient_id,
-                nutrition_problems_type_ids: nutritionProblemsTypeIdsString,
-                nutrition_template_ids: nutritionTemplateIdsString,
-            };
-
             let result;
+            const now = new Date();
+            
             if (existingAssessment) {
                 // Update existing nutrition assessment
-                result = await db.update(nutrition_assessment).set(nutritionAssessmentData).where(eq(nutrition_assessment.patient_id, id)).returning();
+                result = await db.update(nutrition_assessment)
+                    .set({
+                        patient_id: patient_id,
+                        nutrition_problems_type_ids: nutritionProblemsTypeIdsString,
+                        nutrition_template_ids: nutritionTemplateIdsString,
+                        updatedAt: now,
+                    })
+                    .where(eq(nutrition_assessment.patient_id, id))
+                    .returning();
                 result = result[0];
             } else {
                 // Create new nutrition assessment
-                result = await db.insert(nutrition_assessment).values(nutritionAssessmentData).returning();
+                result = await db.insert(nutrition_assessment)
+                    .values({
+                        patient_id: patient_id,
+                        nutrition_problems_type_ids: nutritionProblemsTypeIdsString,
+                        nutrition_template_ids: nutritionTemplateIdsString,
+                        createdAt: now,
+                        updatedAt: now,
+                    })
+                    .returning();
                 result = result[0];
             }
 
