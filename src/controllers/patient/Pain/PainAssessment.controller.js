@@ -482,90 +482,45 @@ export const painFrequencyById = async (request, reply) => {
 // Pain Observation Store
 export const painObservationStore = async (request, reply) => {
   try {
+    // Note: Validation should be done in route schema
+    // Validation handled in route schema
+
     const { patient_id, pain_observations_id } = request.body;
-
-    if (!patient_id) {
-      reply.code(400);
-      return {
-        status: 400,
-        message: "Validation failed",
-        errors: [{ field: "patient_id", message: "Patient ID is required" }],
-      };
-    }
-
-    const patientIdNum = parseInt(patient_id);
-    if (Number.isNaN(patientIdNum)) {
-      reply.code(400);
-      return {
-        status: 400,
-        message: "Validation failed",
-        errors: [{ field: "patient_id", message: "Patient ID must be a number" }],
-      };
-    }
-
-    const normalizedObservation = (() => {
-      if (pain_observations_id === undefined || pain_observations_id === null) {
-        return null;
-      }
-      if (Array.isArray(pain_observations_id)) {
-        return pain_observations_id.length > 0
-          ? String(pain_observations_id[0])
-          : null;
-      }
-      return String(pain_observations_id);
-    })();
 
     const existingObservation = await db
       .select()
       .from(pain_observations)
-      .where(eq(pain_observations.patient_id, patientIdNum))
+      .where(eq(pain_observations.patient_id, parseInt(patient_id)))
       .limit(1);
     const painObservation = existingObservation[0];
 
-    const now = new Date();
     let result;
     if (painObservation) {
+      // Update existing record
       const updatedObservation = await db
         .update(pain_observations)
-        .set({
-          pain_observations_id: normalizedObservation,
-          updatedAt: now,
-        })
-        .where(eq(pain_observations.patient_id, patientIdNum))
+        .set({ pain_observations_id })
+        .where(eq(pain_observations.patient_id, parseInt(patient_id)))
         .returning();
       result = updatedObservation[0];
     } else {
+      // Create new record
       const newObservation = await db
         .insert(pain_observations)
         .values({
-          patient_id: patientIdNum,
-          pain_observations_id: normalizedObservation,
-          createdAt: now,
-          updatedAt: now,
+          patient_id: parseInt(patient_id),
+          pain_observations_id,
         })
         .returning();
       result = newObservation[0];
     }
 
     reply.code(201);
-    return {
-      status: 201,
-      message: "Pain observation saved successfully",
-      data: result,
-    };
+    return result;
   } catch (error) {
     console.error("Error in painObservationStore:", error);
-    console.error("Error details:", {
-      message: error.message,
-      stack: error.stack,
-      body: request.body,
-    });
     reply.code(500);
-    return {
-      status: 500,
-      message: "Server error",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
-    };
+    return { message: "Server error" };
   }
 };
 
