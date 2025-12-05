@@ -105,6 +105,7 @@ class LivingArrangementsController {
     }
 
     // Show living arrangements for a specific patient
+    // Returns empty data if no arrangements exist (to allow frontend to render form)
     async show(request, reply) {
         try {
             const { id } = request.params;
@@ -113,9 +114,18 @@ class LivingArrangementsController {
             const livingArrangements = livingArrangementsRecords[0];
 
             if (!livingArrangements) {
-                reply.code(404);
-            return {
-                    error: "No living arrangements found for this patient",
+                // Return 200 with empty data instead of 404, so frontend can render form
+                reply.code(200);
+                return {
+                    id: null,
+                    patient_id: parseInt(id),
+                    primary_caregiver: null,
+                    primary_location_of_patient: null,
+                    caregiver_availability: null,
+                    patient_able: null,
+                    need_hospice_service: null,
+                    createdAt: null,
+                    updatedAt: null,
                 };
             }
 

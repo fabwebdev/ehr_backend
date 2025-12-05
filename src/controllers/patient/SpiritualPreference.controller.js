@@ -77,6 +77,7 @@ class SpiritualPreferenceController {
     }
 
     // Show spiritual preference for a specific patient
+    // Returns empty data if no preference exists (to allow frontend to render form)
     async show(request, reply) {
         try {
             const { id } = request.params;
@@ -85,9 +86,16 @@ class SpiritualPreferenceController {
             const spiritualPreference = spiritualPreferences[0];
 
             if (!spiritualPreference) {
-                reply.code(404);
-            return {
-                    error: "No Spiritual Preference found for this SpiritualPreference",
+                // Return 200 with empty data instead of 404, so frontend can render form
+                reply.code(200);
+                return {
+                    id: null,
+                    patient_id: parseInt(id),
+                    patient_spiritual: null,
+                    not_religious: null,
+                    comments: null,
+                    createdAt: null,
+                    updatedAt: null,
                 };
             }
 

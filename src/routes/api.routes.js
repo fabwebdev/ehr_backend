@@ -30,6 +30,7 @@ import payerInformationRoutes from "./patient/PayerInformation.routes.js";
 import primaryDiagnosisRoutes from "./patient/PrimaryDiagnosis.routes.js";
 import raceEthnicityRoutes from "./patient/RaceEthnicity.routes.js";
 import signatureRoutes from "./patient/Signature.routes.js";
+import SignatureController from "../controllers/patient/Signature.controller.js";
 import spiritualPreferenceRoutes from "./patient/SpiritualPreference.routes.js";
 import rbacRoutes from "./rbac.routes.js";
 import auditRoutes from "./audit.routes.js";
@@ -68,6 +69,16 @@ async function apiRoutes(fastify, options) {
 
   // Apply authentication middleware to all routes below this point
   fastify.addHook("onRequest", authenticate);
+
+  // Record Completion Signatures routes (at root level for frontend compatibility)
+  // These are aliases for signature routes
+  fastify.get("/recordCompletionSignatures", {
+    preHandler: [authenticate],
+  }, SignatureController.index);
+  
+  fastify.get("/recordCompletionSignatures/:id", {
+    preHandler: [authenticate],
+  }, SignatureController.show);
 
   // Protected routes
   await fastify.register(benefitPeriodRoutes, { prefix: "/benefit-periods" });

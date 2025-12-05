@@ -36,13 +36,22 @@ class PrognosisController {
             // Validate required fields
             if (!patient_id) {
                 reply.code(400);
-            return {
+                return {
                     message: "Patient ID is required",
                 };
             }
 
+            // Convert patient_id to number
+            const patientIdNum = typeof patient_id === 'string' ? parseInt(patient_id) : patient_id;
+            if (isNaN(patientIdNum)) {
+                reply.code(400);
+                return {
+                    message: "Invalid patient ID",
+                };
+            }
+
             // Check if prognosis already exists for this patient
-            const existingPrognoses = await db.select().from(prognosis).where(eq(prognosis.patient_id, patient_id)).limit(1);
+            const existingPrognoses = await db.select().from(prognosis).where(eq(prognosis.patient_id, patientIdNum)).limit(1);
             const existingPrognosis = existingPrognoses[0];
 
             // Convert arrays to comma-separated strings if they are arrays
@@ -62,24 +71,36 @@ class PrognosisController {
                 ? prognosis_imminence_id.join(",")
                 : prognosis_imminence_id;
 
-            // Prepare data for update or create
-            const prognosisData = {
-                patient_id: patient_id,
-                prognosis_patient_is_imminent:
-                    prognosis_patient_is_imminent || null,
-                prognosis_patient_id: prognosisPatientIdString || null,
-                prognosis_caregiver_id: prognosisCaregiverIdString || null,
-                prognosis_imminence_id: prognosisImminenceIdString || null,
-            };
-
             let result;
+            const now = new Date();
+            
             if (existingPrognosis) {
                 // Update existing prognosis
-                result = await db.update(prognosis).set(prognosisData).where(eq(prognosis.patient_id, patient_id)).returning();
+                result = await db.update(prognosis)
+                    .set({
+                        patient_id: patientIdNum,
+                        prognosis_patient_is_imminent: prognosis_patient_is_imminent || null,
+                        prognosis_patient_id: prognosisPatientIdString || null,
+                        prognosis_caregiver_id: prognosisCaregiverIdString || null,
+                        prognosis_imminence_id: prognosisImminenceIdString || null,
+                        updatedAt: now,
+                    })
+                    .where(eq(prognosis.patient_id, patientIdNum))
+                    .returning();
                 result = result[0];
             } else {
                 // Create new prognosis
-                result = await db.insert(prognosis).values(prognosisData).returning();
+                result = await db.insert(prognosis)
+                    .values({
+                        patient_id: patientIdNum,
+                        prognosis_patient_is_imminent: prognosis_patient_is_imminent || null,
+                        prognosis_patient_id: prognosisPatientIdString || null,
+                        prognosis_caregiver_id: prognosisCaregiverIdString || null,
+                        prognosis_imminence_id: prognosisImminenceIdString || null,
+                        createdAt: now,
+                        updatedAt: now,
+                    })
+                    .returning();
                 result = result[0];
             }
 
@@ -99,17 +120,34 @@ class PrognosisController {
     }
 
     // Show prognosis for a specific patient
+    // Returns empty data if no prognosis exists (to allow frontend to render form)
     async show(request, reply) {
         try {
             const { id } = request.params;
+            const patientId = parseInt(id);
 
-            const prognosisRecords = await db.select().from(prognosis).where(eq(prognosis.patient_id, id)).limit(1);
+            if (isNaN(patientId)) {
+                reply.code(400);
+                return {
+                    error: "Invalid patient ID",
+                };
+            }
+
+            const prognosisRecords = await db.select().from(prognosis).where(eq(prognosis.patient_id, patientId)).limit(1);
             const prognosisRecord = prognosisRecords[0];
 
             if (!prognosisRecord) {
-                reply.code(404);
-            return {
-                    error: "No prognosis found for this Prognosis",
+                // Return 200 with empty data instead of 404, so frontend can render form
+                reply.code(200);
+                return {
+                    id: null,
+                    patient_id: parseInt(id),
+                    prognosis_patient_is_imminent: null,
+                    prognosis_patient_id: null,
+                    prognosis_caregiver_id: null,
+                    prognosis_imminence_id: null,
+                    createdAt: null,
+                    updatedAt: null,
                 };
             }
 

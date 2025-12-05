@@ -30,6 +30,7 @@ export const auditLogHandler = async (request, reply) => {
   }
 
   try {
+    // Get user ID (Better Auth uses nanoid strings for user IDs)
     const userId = request.user?.id || null;
     const recordId = request.params?.id || request.body?.id || null;
     
@@ -97,7 +98,9 @@ export const auditLogHandler = async (request, reply) => {
  */
 export const logAudit = async (request, action, tableName, recordId = null) => {
   try {
+    // Get user ID (can be string for nanoid or number)
     const userId = request.user?.id || null;
+    
     const userName =
       [request.user?.firstName, request.user?.lastName].filter(Boolean).join(" ").trim() ||
       request.user?.name ||

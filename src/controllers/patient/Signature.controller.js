@@ -3,6 +3,22 @@ import { signature } from "../../db/schemas/signature.schema.js";
 import { eq } from "drizzle-orm";
 
 class SignatureController {
+    // Get all signatures
+    async index(request, reply) {
+        try {
+            const signatures = await db.select().from(signature);
+            reply.code(200);
+            return signatures;
+        } catch (error) {
+            console.error("Error fetching signatures:", error);
+            reply.code(500);
+            return {
+                message: "Internal server error",
+                error: error.message,
+            };
+        }
+    }
+
     // Store or update signature
     async store(request, reply) {
         try {
@@ -11,34 +27,43 @@ class SignatureController {
             // Validate required fields
             if (!patient_id) {
                 reply.code(400);
-            return {
+                return {
                     message: "Patient ID is required",
                 };
             }
 
-            if (!signature_name) {
+            // signature_name is optional (can be null to clear signature)
+
+            // Convert patient_id to number
+            const patientIdNum = typeof patient_id === 'string' ? parseInt(patient_id) : patient_id;
+            if (isNaN(patientIdNum)) {
                 reply.code(400);
-            return {
-                    message: "Signature name is required",
+                return {
+                    message: "Invalid patient ID",
                 };
             }
 
             // Check if signature already exists for this patient
-            const existingSignatures = await db.select().from(signature).where(eq(signature.patient_id, patient_id)).limit(1);
+            const existingSignatures = await db.select().from(signature).where(eq(signature.patient_id, patientIdNum)).limit(1);
             const existingSignature = existingSignatures[0];
 
             let result;
+            const now = new Date();
+            
             if (existingSignature) {
                 // Update existing signature
                 result = await db.update(signature).set({
                     signature_name: signature_name,
-                }).where(eq(signature.patient_id, patient_id)).returning();
+                    updatedAt: now,
+                }).where(eq(signature.patient_id, patientIdNum)).returning();
                 result = result[0];
             } else {
                 // Create new signature
                 result = await db.insert(signature).values({
-                    patient_id: patient_id,
+                    patient_id: patientIdNum,
                     signature_name: signature_name,
+                    createdAt: now,
+                    updatedAt: now,
                 }).returning();
                 result = result[0];
             }
@@ -59,17 +84,31 @@ class SignatureController {
     }
 
     // Show signature for a specific patient
+    // Returns empty data if no signature exists (to allow frontend to render form)
     async show(request, reply) {
         try {
             const { id } = request.params;
+            const patientId = parseInt(id);
 
-            const signatures = await db.select().from(signature).where(eq(signature.patient_id, id)).limit(1);
+            if (isNaN(patientId)) {
+                reply.code(400);
+                return {
+                    error: "Invalid patient ID",
+                };
+            }
+
+            const signatures = await db.select().from(signature).where(eq(signature.patient_id, patientId)).limit(1);
             const signatureRecord = signatures[0];
 
             if (!signatureRecord) {
-                reply.code(404);
-            return {
-                    error: "No visit nutrition assessment found for this patient",
+                // Return 200 with empty data instead of 404, so frontend can render form
+                reply.code(200);
+                return {
+                    id: null,
+                    patient_id: patientId,
+                    signature_name: null,
+                    createdAt: null,
+                    updatedAt: null,
                 };
             }
 

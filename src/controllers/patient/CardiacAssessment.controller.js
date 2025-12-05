@@ -107,6 +107,7 @@ class CardiacAssessmentController {
     }
 
     // Show cardiac assessment for a specific patient
+    // Returns empty data if no assessment exists (to allow frontend to render form)
     async show(request, reply) {
         try {
             const { id } = request.params;
@@ -115,9 +116,14 @@ class CardiacAssessmentController {
             const cardiacAssessment = cardiacAssessments[0];
 
             if (!cardiacAssessment) {
-                reply.code(404);
+                // Return 200 with empty data instead of 404, so frontend can render form
+                reply.code(200);
                 return {
-                    error: "No cardiac assessment found for this patient",
+                    id: null,
+                    patient_id: parseInt(id),
+                    cardiac_ids: "",
+                    createdAt: null,
+                    updatedAt: null,
                 };
             }
 

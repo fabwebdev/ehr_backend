@@ -3,7 +3,7 @@ import { users } from './user.schema.js';
 
 export const audit_logs = pgTable('audit_logs', {
   id: bigint('id', { mode: 'number' }).primaryKey().generatedByDefaultAsIdentity(),
-  user_id: bigint('user_id', { mode: 'number' }).references(() => users.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+  user_id: text('user_id').references(() => users.id, { onDelete: 'set null', onUpdate: 'cascade' }),
   action: varchar('action', { length: 255 }).notNull(),
   table_name: varchar('table_name', { length: 255 }).notNull(),
   record_id: bigint('record_id', { mode: 'number' }),
