@@ -18,7 +18,6 @@ class SignatureController {
             };
         }
     }
-
     // Store or update signature
     async store(request, reply) {
         try {
