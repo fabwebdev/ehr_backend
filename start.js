@@ -5,7 +5,7 @@
 
 import fixUserHasRolesTable from "./scripts/fix_user_has_roles.js";
 import fixPatientsColumns from "./scripts/fix_patients_columns.js";
-import runMigrations from "./migrate.js";
+import runMigrations from "./scripts/database/migrate.js";
 import { spawn } from "child_process";
 
 async function startApplication() {

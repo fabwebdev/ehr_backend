@@ -68,10 +68,14 @@ class IntegumentaryAssessmentController {
                 : integumentary_ids;
 
             let result;
+            const now = new Date();
             if (existingAssessment) {
                 // Update existing integumentary assessment
                 result = await db.update(integumentary_assessment)
-                    .set({ integumentary_ids: integumentaryIdsString })
+                    .set({ 
+                        integumentary_ids: integumentaryIdsString,
+                        updatedAt: now
+                    })
                     .where(eq(integumentary_assessment.patient_id, patient_id))
                     .returning();
                 result = result[0];
@@ -81,6 +85,8 @@ class IntegumentaryAssessmentController {
                     .values({
                         patient_id: patient_id,
                         integumentary_ids: integumentaryIdsString,
+                        createdAt: now,
+                        updatedAt: now,
                     })
                     .returning();
                 result = result[0];

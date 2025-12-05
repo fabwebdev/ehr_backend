@@ -15,6 +15,10 @@ async function vitalSignsRoutes(fastify, options) {
   fastify.get("/vital-signs/:id", {
     preHandler: [verifyToken],
   }, VitalSignsController.show);
+  
+  fastify.post("/vital-signs/:id", {
+    preHandler: [verifyToken],
+  }, VitalSignsController.update);
 }
 
 export default vitalSignsRoutes;

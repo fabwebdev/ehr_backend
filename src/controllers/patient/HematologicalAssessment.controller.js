@@ -66,10 +66,14 @@ class HematologicalAssessmentController {
                 : hematological_ids;
 
             let result;
+            const now = new Date();
             if (existingAssessment) {
                 // Update existing hematological assessment
                 result = await db.update(hematological_assessment)
-                    .set({ hematological_ids: hematologicalIdsString })
+                    .set({ 
+                        hematological_ids: hematologicalIdsString,
+                        updatedAt: now
+                    })
                     .where(eq(hematological_assessment.patient_id, patient_id))
                     .returning();
                 result = result[0];
@@ -78,6 +82,8 @@ class HematologicalAssessmentController {
                 result = await db.insert(hematological_assessment).values({
                     patient_id: patient_id,
                     hematological_ids: hematologicalIdsString,
+                    createdAt: now,
+                    updatedAt: now,
                 }).returning();
                 result = result[0];
             }
